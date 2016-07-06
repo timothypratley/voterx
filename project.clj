@@ -11,6 +11,8 @@
    [datascript "0.15.0"]
    [posh "0.5.1"]
    [matchbox "0.0.9"]
-   [reagent "0.6.0-rc"]]
+   [cljsjs/firebase "3.0.5-rc2-0"]
+   [reagent "0.6.0-rc"]
+   [cljsjs/d3 "3.5.16-0"]]
   :source-paths
   ["src/cljs" "resources"])

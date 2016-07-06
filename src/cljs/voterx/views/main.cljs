@@ -3,6 +3,7 @@
     [goog.dom.forms :as forms]
     [voterx.db :as db]
     [voterx.comm :as comm]
+    [voterx.views.login :as login]
     [voterx.views.d3 :as d3]))
 
 (defn add-entity-form []
@@ -41,8 +42,7 @@
 (defn graph-view []
   (let [nodes (db/nodes)
         edges (db/edges)]
-    (fn []
-      (prn "zdsafsda" @nodes)
+    (fn a-graph-view []
       [d3/graph nodes edges])))
 
 (defn toolbar []
@@ -58,10 +58,20 @@
        (comm/load-db))}
     "Load"]])
 
+(defn navbar []
+  [:div
+   [:h1
+    [:img {:src "brand.jpg"
+           :style {:height "75px"}}]
+    "Voter"
+    [:span {:style {:font-family "cursive"}} "X"]]
+   [login/login-view]])
+
 (defn main []
   (let [fun (db/fun)]
-    (fn []
+    (fn a-main []
       [:div
+       [navbar]
        [:div.mdl-grid
         [:div.mdl-cell.mdl-cell--12-col (pr-str @fun)]
         [:div.mdl-cell.mdl-cell--8-col [graph-view]]
