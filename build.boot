@@ -44,6 +44,12 @@
   (comp (development)
         (run)))
 
+(deftask public []
+  (comp (production)
+        (build)
+        (sift :invert true :include #{#"js/app.out" #"js/app.cljs.edn"})
+        (target :dir #{"public"})))
+
 (defn- generate-lein-project-file! [& {:keys [keep-project] :or {:keep-project true}}]
   (require 'clojure.java.io)
   (let [pfile ((resolve 'clojure.java.io/file) "project.clj")
