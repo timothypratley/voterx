@@ -67,11 +67,18 @@
     [:span {:style {:font-family "cursive"}} "X"]]
    [login/login-view]])
 
+(defn db-selector []
+  (into
+    [:ul]
+    (for [user @firebase/db-list]
+      [:li user [:input {:type "checkbox"}]])))
+
 (defn main []
   (let [fun (db/fun)]
     (fn a-main []
       [:div
        [navbar]
+       [db-selector]
        [:div.mdl-grid
         [:div.mdl-cell.mdl-cell--12-col (pr-str @fun)]
         [:div.mdl-cell.mdl-cell--8-col [graph-view]]
