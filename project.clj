@@ -10,8 +10,6 @@
    [org.clojure/core.async "0.2.385"]
    [datascript "0.15.0"]
    [posh "0.5.1"]
-   [matchbox "0.0.9"]
-   [cljsjs/firebase "3.0.5-rc2-0"]
    [reagent "0.6.0-rc"]
    [cljsjs/d3 "3.5.16-0"]]
   :source-paths

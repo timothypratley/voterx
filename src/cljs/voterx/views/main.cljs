@@ -2,7 +2,7 @@
   (:require
     [goog.dom.forms :as forms]
     [voterx.db :as db]
-    [voterx.comm :as comm]
+    [voterx.firebase :as firebase]
     [voterx.views.login :as login]
     [voterx.views.d3 :as d3]))
 
@@ -50,12 +50,12 @@
    [:button.mdl-button.mdl-js-button.mdl-button--raised.mdl-button--accent
     {:on-click
      (fn save-click [e]
-       (comm/save-db))}
+       (firebase/save-db))}
     "Save"]
    [:button.mdl-button.mdl-js-button.mdl-button--raised.mdl-button--accent
     {:on-click
      (fn load-click [e]
-       (comm/load-db))}
+       (firebase/load-db))}
     "Load"]])
 
 (defn navbar []

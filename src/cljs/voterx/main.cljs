@@ -1,9 +1,8 @@
 (ns voterx.main
   (:require
     [reagent.core :as reagent]
-    [voterx.comm :as comm]
-    [voterx.views.main :as main]
-    [voterx.views.login :as login]))
+    [voterx.firebase :as firebase]
+    [voterx.views.main :as main]))
 
 (enable-console-print!)
 
@@ -13,6 +12,5 @@
     (.getElementById js/document "container")))
 
 (defn init []
-  (comm/init)
-  (login/init)
+  (firebase/init)
   (render))
