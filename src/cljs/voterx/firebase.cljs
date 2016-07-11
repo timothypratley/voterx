@@ -66,18 +66,16 @@
   (.signOut (js/firebase.auth))
   (reset! user nil))
 
-(defn save-db []
-  (when-let [uid (:uid @user)]
-    (.set
-      (db-ref "users" uid "db")
-      (pr-str @db/conn))))
+(defn save-db [uid]
+  (.set
+    (db-ref "users" uid "db")
+    (pr-str @db/conn)))
 
-(defn load-db []
-  (when-let [uid (:uid @user)]
-    (.on
-      (db-ref "users" uid "db")
-      "value"
-      (fn received-db [snapshot]
-        (let [db (.val snapshot)]
-          (safe-prn "DB:" db)
-          (db/reset-conn! (edn/read-string {:readers d/data-readers} db)))))))
+(defn load-db [uid]
+  (.on
+    (db-ref "users" uid "db")
+    "value"
+    (fn received-db [snapshot]
+      (let [db (.val snapshot)]
+        (safe-prn "DB:" db)
+        (db/reset-conn! (edn/read-string {:readers d/data-readers} db))))))

@@ -4,7 +4,8 @@
     [voterx.db :as db]
     [voterx.firebase :as firebase]
     [voterx.views.login :as login]
-    [voterx.views.d3 :as d3]))
+    [voterx.views.d3 :as d3]
+    [reagent.core :as reagent]))
 
 (defn add-entity-form []
   [:form
@@ -47,16 +48,13 @@
 
 (defn toolbar []
   [:center
-   [:button.mdl-button.mdl-js-button.mdl-button--raised.mdl-button--accent
-    {:on-click
-     (fn save-click [e]
-       (firebase/save-db))}
-    "Save"]
-   [:button.mdl-button.mdl-js-button.mdl-button--raised.mdl-button--accent
-    {:on-click
-     (fn load-click [e]
-       (firebase/load-db))}
-    "Load"]])
+   (if-let [uid (:uid @firebase/user)]
+     [:button.mdl-button.mdl-js-button.mdl-button--raised.mdl-button--accent
+      {:on-click
+       (fn save-click [e]
+         (firebase/save-db uid))}
+      "Save"]
+     "Must be logged in to save.")])
 
 (defn navbar []
   [:div
@@ -70,8 +68,16 @@
 (defn db-selector []
   (into
     [:ul]
-    (for [user @firebase/db-list]
-      [:li user [:input {:type "checkbox"}]])))
+    (for [user (keys @firebase/db-list)]
+      [:li
+       user
+       (when (= user (:uid @firebase/user))
+         [:strong " My data "])
+       [:button.mdl-button.mdl-js-button.mdl-button--raised.mdl-button--accent
+        {:on-click
+         (fn load-click [e]
+           (firebase/load-db user))}
+        "Load"]])))
 
 (defn main []
   (let [fun (db/fun)]
