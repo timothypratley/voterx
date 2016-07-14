@@ -4,8 +4,6 @@
     [cljs.core.async :refer [chan put! <!]]
     [clojure.string :as string]
     [voterx.db :as db]
-    [cljs.tools.reader.edn :as edn]
-    [datascript.core :as d]
     [reagent.core :as reagent])
   (:require-macros
     [cljs.core.async.macros :refer [go-loop]]))
@@ -69,7 +67,8 @@
 (defn save-db [uid]
   (.set
     (db-ref "users" uid "db")
-    (pr-str @db/conn)))
+    (pr-str @(or (@db/conns uid)
+                (db/init uid)))))
 
 (defn load-db [uid]
   (.on
@@ -77,5 +76,4 @@
     "value"
     (fn received-db [snapshot]
       (let [db (.val snapshot)]
-        (safe-prn "DB:" db)
-        (db/reset-conn! (edn/read-string {:readers d/data-readers} db))))))
+        (db/add-conn uid db)))))

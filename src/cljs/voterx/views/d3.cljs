@@ -52,6 +52,13 @@
 
 (def node-color [213 210 255])
 
+(defn color-for [uid]
+  (let [h (hash uid)]
+    [(bit-and 0xff h)
+     (bit-and 0xff (bit-shift-right h 8))
+     (bit-and 0xff (bit-shift-right h 16))]))
+
+
 (defn scale-rgb [rgb rank-scale]
   (map int (map * rgb (repeat (+ 0.9 (* 0.5 rank-scale))))))
 
@@ -129,7 +136,7 @@
 (def next-shape
   (zipmap (keys shapes) (rest (cycle (keys shapes)))))
 
-(defn draw-node [{:keys [id name x y pagerank shape]} n max-pagerank idx d3graph force-layout mouse-down? selected-id root editing]
+(defn draw-node [{:keys [id name x y pagerank shape uid]} n max-pagerank idx d3graph force-layout mouse-down? selected-id root editing]
   (let [selected? (= id @selected-id)
         rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
         r (scale-dist n rank-scale)]
@@ -157,7 +164,7 @@
         (aset d3graph "nodes" idx "fixed" 1))}
      (if false #_(email? id)
        [gravatar-background id r id]
-       [shape-background (keyword shape) r node-color rank-scale selected?])
+       [shape-background (keyword shape) r (color-for uid) rank-scale selected?])
 
      [:text.unselectable {:text-anchor "middle"
                           :font-size (min (max n 8) 22)
@@ -244,7 +251,7 @@
         (for [[node idx] (map vector (remove :to nodes) (range))]
           [draw-node node (count nodes) max-pagerank idx d3graph force-layout mouse-down? selected-id root editing])))))
 
-(defn draw-graph [this drawable d3graph force-layout mouse-down? selected-id root editing]
+(defn draw-graph [this drawable d3graph force-layout mouse-down? selected-id editing root]
   [:div
    {:style {:height "60vh"}
     :on-mouse-down
@@ -305,7 +312,7 @@
                :y (.-y node)}
               (.-fixed node) (assoc :pinned? true)))))
 
-(defn graph [nodes edges]
+(defn graph [nodes edges selected-id editing root]
   (let [d3graph (d3-graph @nodes @edges)
         drawable (reagent/atom {})
         force-layout (create-force-layout
@@ -319,11 +326,11 @@
                 (when (not= a b)
                   (update-d3graph d3graph @nodes @edges)
                   (.start force-layout)))]
-    (add-watch nodes :watch-graph watch)
-    (add-watch edges :watch-graph watch)
+    (add-watch nodes :watch-nodes watch)
+    (add-watch edges :watch-edges watch)
     (reagent/create-class
       {:display-name "graph"
        :reagent-render
-       (fn graph-render [selected-id root editing]
+       (fn graph-render [nodes edges selected-id editing root]
          (.start force-layout)
-         [draw-graph (reagent/current-component) drawable d3graph force-layout mouse-down? selected-id root editing])})))
+         [draw-graph (reagent/current-component) drawable d3graph force-layout mouse-down? selected-id editing root])})))

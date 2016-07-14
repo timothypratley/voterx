@@ -13,6 +13,7 @@
     (fn edit [e]
       (.preventDefault e)
       (db/add-entity
+        (:uid @firebase/user)
         (into {}
               (for [[k v] (js->clj (.toObject (forms/getFormDataMap (.-target e))))]
                 [(keyword k)
@@ -42,9 +43,12 @@
 
 (defn graph-view []
   (let [nodes (db/nodes)
-        edges (db/edges)]
+        edges (db/edges)
+        selected-id (reagent/atom nil)
+        editing (reagent/atom nil)
+        root (reagent/atom {})]
     (fn a-graph-view []
-      [d3/graph nodes edges])))
+      [d3/graph nodes edges selected-id editing root])))
 
 (defn toolbar []
   [:center
@@ -73,6 +77,8 @@
        user
        (when (= user (:uid @firebase/user))
          [:strong " My data "])
+       (when (@db/conns user)
+         [:strong " loaded "])
        [:button.mdl-button.mdl-js-button.mdl-button--raised.mdl-button--accent
         {:on-click
          (fn load-click [e]
@@ -80,13 +86,11 @@
         "Load"]])))
 
 (defn main []
-  (let [fun (db/fun)]
-    (fn a-main []
-      [:div
-       [navbar]
-       [db-selector]
-       [:div.mdl-grid
-        [:div.mdl-cell.mdl-cell--12-col (pr-str @fun)]
-        [:div.mdl-cell.mdl-cell--8-col [graph-view]]
-        [:div.mdl-cell.mdl-cell--4-col [add-entity-form]]]
-       [toolbar]])))
+  (fn a-main []
+    [:div
+     [navbar]
+     [db-selector]
+     [:div.mdl-grid
+      [:div.mdl-cell.mdl-cell--8-col [graph-view]]
+      [:div.mdl-cell.mdl-cell--4-col [add-entity-form]]]
+     [toolbar]]))
