@@ -35,7 +35,8 @@
 (deftask development []
   (task-options! cljs {:optimizations :none
                        :source-map true
-                       :compiler-options {:devcards true}}
+                      ;; :compiler-options {:devcards true}
+                      }
                  reload {:on-jsload 'voterx.main/render})
   identity)
 
