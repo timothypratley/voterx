@@ -10,6 +10,7 @@
                  [datascript "0.15.2"]
                  [posh "0.5.3.3"]
                  [reagent "0.6.0-rc"]
+                 [devcards "0.2.1-7"]
                  [cljsjs/d3 "3.5.16-0"]])
 
 (require
@@ -32,7 +33,9 @@
   identity)
 
 (deftask development []
-  (task-options! cljs {:optimizations :none :source-map true}
+  (task-options! cljs {:optimizations :none
+                       :source-map true
+                       :compiler-options {:devcards true}}
                  reload {:on-jsload 'voterx.main/render})
   identity)
 
@@ -45,7 +48,7 @@
 (deftask public []
   (comp (production)
         (build)
-        (sift :invert true :include #{#"js/app.out" #"js/app.cljs.edn"})
+        (sift :invert true :include #{#"js/app\.out" #"\S+\.cljs\.edn"})
         (target :dir #{"public"})))
 
 (defn- generate-lein-project-file! [& {:keys [keep-project] :or {:keep-project true}}]

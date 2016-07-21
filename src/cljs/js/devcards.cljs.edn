@@ -1,0 +1,4 @@
+{:require [voterx.devcards]
+ :init-fns [voterx.devcards/init]
+ :compiler-options {:devcards true
+                    :asset-path "js/app.out"}}

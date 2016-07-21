@@ -5,7 +5,8 @@
     [voterx.firebase :as firebase]
     [voterx.views.login :as login]
     [voterx.views.d3 :as d3]
-    [reagent.core :as reagent]))
+    [reagent.core :as reagent]
+    [clojure.string :as string]))
 
 (defn add-entity-form []
   [:form
@@ -74,7 +75,7 @@
     [:ul]
     (for [user (keys @firebase/db-list)]
       [:li
-       user
+       [:span {:style {:background-color (str "rgb(" (string/join "," (d3/color-for user)) ")")}} user]
        (when (= user (:uid @firebase/user))
          [:strong " My data "])
        (when (@db/conns user)
@@ -85,12 +86,28 @@
            (firebase/load-db user))}
         "Load"]])))
 
+(defn whacky []
+  (prn (:uid @firebase/user) "***")
+  (firebase/listener
+    ["users" (:uid @firebase/user) "some-num"]
+    (fn [a]
+      [:h1 "Whack2" @a])))
+
 (defn main []
-  (fn a-main []
-    [:div
-     [navbar]
-     [db-selector]
-     [:div.mdl-grid
-      [:div.mdl-cell.mdl-cell--8-col [graph-view]]
-      [:div.mdl-cell.mdl-cell--4-col [add-entity-form]]]
-     [toolbar]]))
+  (let [x (reagent/atom true)]
+    (fn a-main []
+      [:div
+       (when (and (:uid @firebase/user) @x)
+         [whacky])
+       [:button {:on-click (fn [e] (swap! x not))} "toggle"]
+       [:button
+        {:on-click
+         (fn [e]
+           (firebase/save ["users" (:uid @firebase/user) "some-num"] (rand-int 100)))}
+        "save-rand"]
+       [navbar]
+       [db-selector]
+       [:div.mdl-grid
+        [:div.mdl-cell.mdl-cell--8-col [graph-view]]
+        [:div.mdl-cell.mdl-cell--4-col [add-entity-form]]]
+       [toolbar]])))

@@ -4,7 +4,8 @@
     [cljs.core.async :refer [chan put! <!]]
     [clojure.string :as string]
     [voterx.db :as db]
-    [reagent.core :as reagent])
+    [reagent.core :as reagent]
+    [reagent.ratom :as ratom])
   (:require-macros
     [cljs.core.async.macros :refer [go-loop]]))
 
@@ -28,8 +29,43 @@
     (println)
     (recur)))
 
-(defn db-ref [& path]
+(defn db-ref [path]
   (.ref (js/firebase.database) (string/join "/" path)))
+
+(defn save [path value]
+  (.set (db-ref path) value))
+
+(defn load [uid]
+  (.on
+    (db-ref ["users" uid "db"])
+    "value"
+    (fn received-db [snapshot]
+      (prn "GOT" (.val snapshot)))))
+
+(defn listener [path f]
+  (let [ref (db-ref path)
+        a (reagent/atom nil)]
+    (.on ref "value" (fn [x] (reset! a (.val x))))
+    (reagent/create-class
+      {:display-name "listener"
+       :component-will-unmount
+       (fn [this]
+         (.off ref))
+       :reagent-render
+       (fn [args]
+         [apply f a args])})))
+
+(defn listen [path]
+  (let [a (reagent/atom nil)
+        r (db-ref path)]
+    (.on
+      r
+      "value"
+      (fn [snapshot]
+        (prn "GOT" path)
+        (reset! a (.val snapshot))))
+    (ratom/add-on-dispose! a (fn [] (.off r)))
+    a))
 
 (defn init []
   (js/firebase.initializeApp
@@ -48,7 +84,7 @@
       (js/console.log error)))
   (.on
     ;; TODO: how do I only get the keys, not the full objects??
-    (db-ref "users")
+    (db-ref ["users"])
     "value"
     (fn received-dbs [snapshot]
       (let [dbs (js->clj (.val snapshot))]
@@ -66,13 +102,13 @@
 
 (defn save-db [uid]
   (.set
-    (db-ref "users" uid "db")
+    (db-ref ["users" uid "db"])
     (pr-str @(or (@db/conns uid)
-                (db/init uid)))))
+                 (db/init uid)))))
 
 (defn load-db [uid]
   (.on
-    (db-ref "users" uid "db")
+    (db-ref ["users" uid "db"])
     "value"
     (fn received-db [snapshot]
       (let [db (.val snapshot)]
