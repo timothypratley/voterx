@@ -11,7 +11,8 @@
                  [posh "0.5.3.3"]
                  [reagent "0.6.0-rc"]
                  [devcards "0.2.1-7"]
-                 [cljsjs/d3 "3.5.16-0"]])
+                 [cljsjs/d3 "3.5.16-0"]
+                 [cljsjs/firebase "3.2.0"]])
 
 (require
  '[adzerk.boot-cljs      :refer [cljs]]
@@ -29,14 +30,12 @@
         (build)))
 
 (deftask production []
-  (task-options! cljs {:optimizations :whitespace})
+  (task-options! cljs {:optimizations :advanced})
   identity)
 
 (deftask development []
   (task-options! cljs {:optimizations :none
-                       :source-map true
-                      ;; :compiler-options {:devcards true}
-                      }
+                       :source-map true}
                  reload {:on-jsload 'voterx.main/render})
   identity)
 

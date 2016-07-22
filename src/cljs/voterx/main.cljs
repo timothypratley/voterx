@@ -7,9 +7,10 @@
 (enable-console-print!)
 
 (defn render []
-  (reagent/render-component
-    [main/main]
-    (.getElementById js/document "container")))
+  (when-let [element (.getElementById js/document "container")]
+    (reagent/render-component
+      [main/main]
+      element)))
 
 (defn init []
   (firebase/init)

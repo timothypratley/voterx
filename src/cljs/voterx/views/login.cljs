@@ -1,6 +1,9 @@
 (ns voterx.views.login
   (:require
-    [voterx.firebase :as firebase]))
+    [voterx.firebase :as firebase]
+    [devcards.core])
+  (:require-macros
+    [devcards.core :refer [defcard-rg]]))
 
 (defn login-view []
   [:div
@@ -20,3 +23,9 @@
        (fn login-click [e]
          (firebase/sign-in-with-popup))}
       "Login with Google"])])
+
+(defcard-rg login-card
+  [:div
+   [login-view]
+   [:div "Click the button to login"]
+   [:div "Click your picture to log out"]])

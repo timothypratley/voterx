@@ -1,3 +1,4 @@
-{:require [voterx.devcards voterx.main]
+{:require [voterx.devcards]
  :init-fns [voterx.devcards/init]
- :compiler-options {:asset-path "js/devcards.out"}}
+ :compiler-options {:asset-path "js/devcards.out"
+                    :devcards true}}

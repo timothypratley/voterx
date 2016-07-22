@@ -88,7 +88,7 @@
 
 (defn whacky []
   (prn (:uid @firebase/user) "***")
-  (firebase/listener
+  (firebase/on
     ["users" (:uid @firebase/user) "some-num"]
     (fn [a]
       [:h1 "Whack2" @a])))
