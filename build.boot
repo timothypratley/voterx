@@ -2,7 +2,7 @@
  :source-paths    #{"src/cljs"}
  :resource-paths  #{"resources"}
  :dependencies '[[adzerk/boot-cljs          "1.7.228-1"  :scope "test"]
-                 [adzerk/boot-reload        "0.4.11"      :scope "test"]
+                 [adzerk/boot-reload        "0.4.12"      :scope "test"]
                  [pandeiro/boot-http        "0.7.3"      :scope "test"]
                  [org.clojure/clojure "1.9.0-alpha10"]
                  [org.clojure/clojurescript "1.9.93"]
@@ -30,7 +30,8 @@
         (build)))
 
 (deftask production []
-  (task-options! cljs {:optimizations :advanced})
+  (task-options! cljs {:optimizations :whitespace
+                       :source-map true})
   identity)
 
 (deftask development []
