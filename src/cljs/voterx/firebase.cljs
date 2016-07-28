@@ -71,6 +71,7 @@
     a))
 
 (defcard-rg once-card
+  "This card will not update on changes, only when you refresh the page."
   (fn []
     (let [a (once ["test"])]
       (fn []
@@ -91,9 +92,22 @@
          (into [f a] args))})))
 
 (defcard-rg on-card
-  [on ["test"]
-   (fn [a]
-     [:div @a])])
+  "Watch the console for messages. While hidden, no changes are listened to."
+  (let [show? (reagent/atom true)]
+    (fn []
+      [:div
+       [:button
+        {:on-click
+         (fn [e]
+           (swap! show? not))}
+        (if @show?
+          "hide"
+          "show")]
+       (when @show?
+         [on ["test"]
+          (fn [a]
+            (println "Received change" @a)
+            [:div @a])])])))
 
 (defn sign-in-with-popup []
   (.signInWithPopup

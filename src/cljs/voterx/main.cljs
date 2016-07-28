@@ -2,7 +2,7 @@
   (:require
     [reagent.core :as reagent]
     [voterx.firebase :as firebase]
-    [voterx.views.main :as main]
+    [voterx.views.home :as main]
     [devcards.core])
   (:require-macros
     [devcards.core :refer [defcard]]))
@@ -12,7 +12,7 @@
 (defn render []
   (when-let [element (.getElementById js/document "container")]
     (reagent/render-component
-      [main/main]
+      [main/home]
       element)))
 
 (defn init []
