@@ -38,11 +38,12 @@
 
 (defn nodes []
   (reaction
-    (for [[uid conn] @conns
-          [id name] @(nodes-q conn)]
-      {:db/id (str uid "-" id)
-       :uid uid
-       :name name})))
+    (doall
+      (for [[uid conn] @conns
+            [id name] @(nodes-q conn)]
+        {:db/id (str uid "-" id)
+         :uid uid
+         :name name}))))
 
 (defn edges-q [conn]
   (q '[:find ?e ?from ?to
@@ -53,15 +54,16 @@
 
 (defn edges []
   (reaction
-    (concat
-      (for [[uid conn] @conns
-            [id from to] @(edges-q conn)]
-        {:db/id (str uid "-" id)
-         :uid uid
-         :from (str uid "-" from)
-         :to (str uid "-" to)})
-      (for [[name nodes] (group-by :name @(nodes))
-            [a b] (combinatorics/combinations nodes 2)]
-        {:db/id (str (:db/id a) "-" (:db/id b))
-         :from (:db/id a)
-         :to (:db/id b)}))))
+    (doall
+      (concat
+        (for [[uid conn] @conns
+              [id from to] @(edges-q conn)]
+          {:db/id (str uid "-" id)
+           :uid uid
+           :from (str uid "-" from)
+           :to (str uid "-" to)})
+        (for [[name nodes] (group-by :name @(nodes))
+              [a b] (combinatorics/combinations nodes 2)]
+          {:db/id (str (:db/id a) "-" (:db/id b))
+           :from (:db/id a)
+           :to (:db/id b)})))))

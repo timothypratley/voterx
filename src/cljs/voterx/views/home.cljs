@@ -1,48 +1,12 @@
 (ns voterx.views.home
   (:require
-    [goog.dom.forms :as forms]
     [voterx.db :as db]
     [voterx.firebase :as firebase]
     [voterx.views.login :as login]
     [voterx.views.d3 :as d3]
+    [voterx.views.text-entry :as text-entry]
     [reagent.core :as reagent]
-    [clojure.string :as string])
-  (:import
-    [goog.structs Map]))
-
-(defn add-entity-form []
-  [:form
-   {:on-submit
-    (fn edit [e]
-      (.preventDefault e)
-      (db/add-entity
-        (:uid @firebase/user)
-        (into {}
-              (for [[k v] (js->clj (.toObject (forms/getFormDataMap (.-target e))))]
-                [(keyword k)
-                 (if (<= (count v) 1)
-                   (first v)
-                   v)]))))}
-   [:div#name.mdl-textfield.mdl-js-textfield
-    {:style {:width "100%"}}
-    [:input.mdl-textfield__input.mdl-js-textfield
-     {:type "text"
-      :name "name"}]
-    [:label.mdl-textfield__label
-     {:for "name"}
-     "Title..."]]
-   [:div#text.mdl-textfield.mdl-js-textfield.mdl-textfield--expandable
-    {:style {:width "100%"}}
-    [:textarea.mdl-textfield__input
-     {:type "text"
-      :name "text"
-      :rows 5}]
-    [:label.mdl-textfield__label
-     {:for "text"}
-     "Text..."]]
-   [:center
-    [:input.mdl-button.mdl-js-button--raised.mdl-button--accent
-     {:type "submit"}]]])
+    [clojure.string :as string]))
 
 (defn graph-view []
   (let [nodes (db/nodes)
@@ -99,5 +63,5 @@
    [db-selector]
    [:div.mdl-grid
     [:div.mdl-cell.mdl-cell--8-col [graph-view]]
-    [:div.mdl-cell.mdl-cell--4-col [add-entity-form]]]
+    [:div.mdl-cell.mdl-cell--4-col [text-entry/add-entity-form]]]
    [toolbar]])
