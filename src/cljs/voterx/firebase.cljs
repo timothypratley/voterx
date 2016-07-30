@@ -61,7 +61,9 @@
    [:input
     {:type "submit"}]])
 
-(defn once [path]
+(defn once
+  "Retreives the firebase state at path as a ratom that will be set when the state arrives."
+  [path]
   (let [a (reagent/atom nil)]
     (.once
       (db-ref path)
@@ -77,7 +79,11 @@
       (fn []
         [:div @a]))))
 
-(defn on [path f]
+(defn on
+  "Takes a path and a component.
+  Component takes a ratom as it's first argument, and optional other arguments.
+  The atom derefs to the firebase state at path."
+  [path component]
   (let [ref (db-ref path)
         a (reagent/atom nil)]
     (.on ref "value" (fn [x]
@@ -88,8 +94,8 @@
        (fn will-unmount-listener [this]
          (.off ref))
        :reagent-render
-       (fn render-listener [args]
-         (into [f a] args))})))
+       (fn render-listener [path component & args]
+         (into [component a] args))})))
 
 (defcard-rg on-card
   "Watch the console for messages. While hidden, no changes are listened to."
@@ -124,6 +130,56 @@
     (db-ref ["users" uid "db"])
     (pr-str @(or (@db/conns uid)
                  (db/init uid)))))
+
+(defn dissoc-in
+  "Dissociates an entry from a nested associative structure returning a new
+  nested structure. keys is a sequence of keys. Any empty maps that result
+  will not be present in the new structure."
+  [m [k & ks :as keys]]
+  (if ks
+    (if-let [nextmap (get m k)]
+      (let [newmap (dissoc-in nextmap ks)]
+        (if (seq newmap)
+          (assoc m k newmap)
+          (dissoc m k)))
+      m)
+    (dissoc m k)))
+
+(defn with-refs
+  "Takes a component that will render with an atom, on, off and args.
+  on and off take paths to listen/unlisten to.
+  The atom derefs to the firebase state for listened to paths."
+  [component]
+  (let [refs (reagent/atom {})
+        a (reagent/atom {})
+        on (fn on [path]
+             (when-not (@refs path)
+               (swap! refs assoc path
+                      (doto (db-ref path)
+                        (.on "value" (fn [x]
+                                       (swap! a assoc-in path (.val x))))))))
+        off (fn off [path]
+              (when-let [ref (@refs path)]
+                (.off ref))
+              (swap! refs dissoc path)
+              (swap! a dissoc-in path))]
+    (reagent/create-class
+      {:display-name "listener"
+       :component-will-unmount
+       (fn will-unmount-listener [this]
+         (doseq [ref @refs]
+           (.off ref)))
+       :reagent-render
+       (fn render-listener [component & args]
+         (into [component a on off] args))})))
+
+(defcard-rg on-refs-card
+  [with-refs
+   (fn listening-component [a on off]
+     [:div
+      [:button {:on-click (fn [e] (on ["test"]))} "on!"]
+      [:button {:on-click (fn [e] (off ["test"]))} "off!"]
+      [:div (pr-str @a)]])])
 
 (defn load-db [uid]
   (.on

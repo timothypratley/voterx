@@ -54,11 +54,6 @@
 
 (defn home []
   [:div
-   [:button
-    {:on-click
-     (fn [e]
-       (firebase/save ["users" (:uid @firebase/user) "some-num"] (rand-int 100)))}
-    "save-rand"]
    [navbar]
    [db-selector]
    [:div.mdl-grid

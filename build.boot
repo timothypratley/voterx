@@ -49,5 +49,5 @@
 (deftask public []
   (comp (production)
         (build)
-        (sift :invert true :include #{#"js/app\.out" #"\S+\.cljs\.edn"})
+        (sift :invert true :include #{#"js/devcards.out" #"js/app\.out" #"\S+\.cljs\.edn"})
         (target :dir #{"public"})))
