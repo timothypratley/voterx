@@ -174,12 +174,19 @@
          (into [component a on off] args))})))
 
 (defcard-rg on-refs-card
+  "Takes a component that will render with an atom, on, off and args.
+  on and off take paths to listen/unlisten to.
+  The atom derefs to the firebase state for listened to paths."
   [with-refs
    (fn listening-component [a on off]
-     [:div
-      [:button {:on-click (fn [e] (on ["test"]))} "on!"]
-      [:button {:on-click (fn [e] (off ["test"]))} "off!"]
-      [:div (pr-str @a)]])])
+     (into
+       [:div
+        [:div (pr-str @a)]]
+       (mapcat
+         (fn [path]
+           [[:button {:on-click (fn [e] (on path))} (str "on " (pr-str path))]
+            [:button {:on-click (fn [e] (off path))} (str "off " (pr-str path))]])
+         [["test"] ["test2"]])))])
 
 (defn load-db [uid]
   (.on
