@@ -50,14 +50,11 @@
     (overwrite "paths" d3graph replacement)
     (overwrite "links" d3graph replacement)))
 
-(def node-color [213 210 255])
-
 (defn color-for [uid]
   (let [h (hash uid)]
     [(bit-and 0xff h)
      (bit-and 0xff (bit-shift-right h 8))
      (bit-and 0xff (bit-shift-right h 16))]))
-
 
 (defn scale-rgb [rgb rank-scale]
   (map int (map * rgb (repeat (+ 0.9 (* 0.5 rank-scale))))))
@@ -127,16 +124,16 @@
     :style {:cursor "pointer"}}
    r])
 
+(def next-shape
+  (zipmap (keys shapes) (rest (cycle (keys shapes)))))
+
 (defn email? [s]
   (->> s
        (string/trim)
        (string/upper-case)
        (re-matches #"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}")))
 
-(def next-shape
-  (zipmap (keys shapes) (rest (cycle (keys shapes)))))
-
-(defn draw-node [{:keys [id name x y pagerank shape uid]} n max-pagerank idx d3graph force-layout mouse-down? selected-id {:keys [add-edge node-shape]} editing]
+(defn draw-node [{:keys [id name x y pagerank shape uid]} n max-pagerank idx d3graph force-layout mouse-down? selected-id {:keys [shift-click-node]} editing]
   (let [selected? (= id @selected-id)
         rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
         r (scale-dist n rank-scale)]
@@ -155,22 +152,19 @@
         (.preventDefault e)
         (let [new-selected-id (aget d3graph "nodes" idx "id")]
           (when (and (.-shiftKey e) @selected-id new-selected-id)
-            (prn "toot")
-            (if (= @selected-id new-selected-id)
-              (node-shape new-selected-id)
-              (add-edge [@selected-id new-selected-id])))
+            (shift-click-node @selected-id new-selected-id))
           (reset! selected-id new-selected-id)
           (reset! editing nil))
         (reset! mouse-down? true)
         (aset d3graph "nodes" idx "fixed" 1))}
-     (if false #_(email? id)
-       [gravatar-background id r id]
+     (if (email? name)
+       [gravatar-background id r name]
        [shape-background (keyword shape) r (color-for uid) rank-scale selected?])
-
-     [:text.unselectable {:text-anchor "middle"
-                          :font-size (min (max n 8) 22)
-                          :style {:pointer-events "none"
-                                  :dominant-baseline "central"}}
+     [:text.unselectable
+      {:text-anchor "middle"
+       :font-size (min (max n 8) 22)
+       :style {:pointer-events "none"
+               :dominant-baseline "central"}}
       name]]))
 
 (defn average [& args]
@@ -179,7 +173,7 @@
 (defn rise-over-run [o a]
   (/ (* 180 (js/Math.atan2 o a)) js/Math.PI))
 
-(defn draw-link [[from mid to :as path] nodes d3graph force-layout mouse-down? selected-id {:keys [edge-weight]} editing]
+(defn draw-edge [[from mid to :as path] nodes d3graph force-layout mouse-down? selected-id {:keys [shift-click-edge]} editing]
   (let [{x1 :x y1 :y} (get nodes from)
         {x2 :x y2 :y id :id} (get nodes mid)
         {x3 :x y3 :y} (get nodes to)
@@ -197,9 +191,8 @@
         (reset! mouse-down? true)
         (reset! selected-id (aget d3graph "nodes" mid "id"))
         (reset! editing nil)
-        (when (and (.-shiftKey e) @selected-id)
-          (let [[from to] @selected-id]
-            (edge-weight from to)))
+        (when (.-shiftKey e)
+          (shift-click-edge from mid to))
         (aset d3graph "nodes" mid "fixed" 1))
       :stroke (if selected?
                 "#6699aa"
@@ -249,7 +242,7 @@
       ;; TODO: key by id instead!!
       (concat
         (for [path paths]
-          [draw-link path nodes d3graph force-layout mouse-down? selected-id callbacks editing])
+          [draw-edge path nodes d3graph force-layout mouse-down? selected-id callbacks editing])
         (for [[node idx] (map vector (remove :to nodes) (range))]
           [draw-node node (count nodes) max-pagerank idx d3graph force-layout mouse-down? selected-id callbacks editing])))))
 

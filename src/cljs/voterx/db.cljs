@@ -27,7 +27,7 @@
   (transact! conn [e]))
 
 (defn retract [conn id]
-  (transact! conn [:db.fn/retractEntity id]))
+  (transact! conn [[:db.fn/retractEntity id]]))
 
 (defn nodes-q [conn]
   (q '[:find ?e ?name

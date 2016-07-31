@@ -13,14 +13,31 @@
   (:require-macros
     [devcards.core :refer [defcard-rg]]))
 
+(defn db-ref [path]
+  (.ref (js/firebase.database) (string/join "/" path)))
+
+(defn save [path value]
+  (.set (db-ref path) value))
+
 (defonce user
   (reagent/atom nil))
 
-(defonce db-list
-  (reagent/atom []))
-
-(defn db-ref [path]
-  (.ref (js/firebase.database) (string/join "/" path)))
+(defn on-auth []
+  (.onAuthStateChanged
+    (js/firebase.auth)
+    (fn auth-state-changed [user-obj]
+      ;; TODO: better way of cljsizing user-obj?
+      (let [uid (.-uid user-obj)
+            display-name (.-displayName user-obj)
+            photo-url (.-photoURL user-obj)]
+        (save ["users" uid "settings"]
+              #js {:photo-url photo-url
+                   :display-name display-name})
+        (reset! user {:photoURL photo-url
+                      :displayName display-name
+                      :uid uid})))
+    (fn auth-error [error]
+      (js/console.log error))))
 
 (defn init []
   (js/firebase.initializeApp
@@ -28,25 +45,7 @@
          :authDomain "voterx-e88a1.firebaseapp.com"
          :databaseURL "https://voterx-e88a1.firebaseio.com"
          :storageBucket "voterx-e88a1.appspot.com"})
-  (.onAuthStateChanged
-    (js/firebase.auth)
-    (fn auth-state-changed [user-obj]
-      ;; TODO: better way of cljsizing user-obj?
-      (reset! user {:photoURL (.-photoURL user-obj)
-                    :displayName (.-displayName user-obj)
-                    :uid (.-uid user-obj)}))
-    (fn auth-error [error]
-      (js/console.log error)))
-  (.on
-    ;; TODO: how do I only get the keys, not the full objects??
-    (db-ref ["users"])
-    "value"
-    (fn received-dbs [snapshot]
-      (let [dbs (js->clj (.val snapshot))]
-        (reset! db-list dbs)))))
-
-(defn save [path value]
-  (.set (db-ref path) value))
+  (on-auth))
 
 (defcard-rg save-card
   [:form

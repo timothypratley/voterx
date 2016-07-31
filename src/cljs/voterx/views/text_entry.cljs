@@ -27,7 +27,7 @@
     [:label.mdl-textfield__label
      {:for "name"}
      "Title..."]]
-   [:div#text.mdl-textfield.mdl-js-textfield.mdl-textfield--expandable
+   #_[:div#text.mdl-textfield.mdl-js-textfield.mdl-textfield--expandable
     {:style {:width "100%"}}
     [:textarea.mdl-textfield__input
      {:type "text"
