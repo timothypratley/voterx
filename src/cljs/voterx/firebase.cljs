@@ -125,7 +125,7 @@
   (.signOut (js/firebase.auth))
   (reset! user nil))
 
-(defn save-db [uid]
+#_(defn save-db [uid]
   (.set
     (db-ref ["users" uid "db"])
     (pr-str @(or (@db/conns uid)
@@ -149,7 +149,7 @@
   "Takes a component that will render with an atom, on, off and args.
   on and off take paths to listen/unlisten to.
   The atom derefs to the firebase state for listened to paths."
-  [component]
+  [component & args]
   (let [refs (reagent/atom {})
         a (reagent/atom {})
         on (fn on [path]
@@ -167,31 +167,52 @@
       {:display-name "listener"
        :component-will-unmount
        (fn will-unmount-listener [this]
-         (doseq [ref @refs]
+         (doseq [ref (vals @refs)]
            (.off ref)))
        :reagent-render
        (fn render-listener [component & args]
          (into [component a on off] args))})))
 
-(defcard-rg on-refs-card
+(defcard-rg with-refs-card
   "Takes a component that will render with an atom, on, off and args.
   on and off take paths to listen/unlisten to.
   The atom derefs to the firebase state for listened to paths."
-  [with-refs
-   (fn listening-component [a on off]
-     (into
-       [:div
-        [:div (pr-str @a)]]
-       (mapcat
-         (fn [path]
-           [[:button {:on-click (fn [e] (on path))} (str "on " (pr-str path))]
-            [:button {:on-click (fn [e] (off path))} (str "off " (pr-str path))]])
-         [["test"] ["test2"]])))])
+  (let [show? (reagent/atom true)]
+    (fn []
+      [:div
+       [:button {:on-click (fn [e] (swap! show? not))} (if @show? "hide" "show")]
+       (when @show?
+         [with-refs
+          (fn listening-component [a on off]
+            (into
+              [:div
+               [:div (pr-str @a)]]
+              (mapcat
+                (fn [path]
+                  [[:button {:on-click (fn [e] (on path))} (str "on " (pr-str path))]
+                   [:button {:on-click (fn [e] (off path))} (str "off " (pr-str path))]])
+                [["test"] ["test2"]])))])])))
 
-(defn load-db [uid]
-  (.on
-    (db-ref ["users" uid "db"])
-    "value"
-    (fn received-db [snapshot]
-      (let [db (.val snapshot)]
-        (db/add-conn uid db)))))
+(defn with-refs-only
+  [add clear component & args]
+  (let [refs (reagent/atom {})
+        on (fn on [path]
+             (when-not (@refs path)
+               (swap! refs assoc path
+                      (doto (db-ref path)
+                        (.on "value" (fn [x]
+                                       (add path (.val x))))))))
+        off (fn off [path]
+              (when-let [ref (@refs path)]
+                (.off ref))
+              (swap! refs dissoc path)
+              (clear path))]
+    (reagent/create-class
+      {:display-name "listener"
+       :component-will-unmount
+       (fn will-unmount-listener [this]
+         (doseq [ref (vals @refs)]
+           (.off ref)))
+       :reagent-render
+       (fn render-listener [add clear component & args]
+         (into [component on off] args))})))

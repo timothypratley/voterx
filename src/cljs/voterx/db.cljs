@@ -11,24 +11,23 @@
 (def schema
   {:to {:db/cardinality :db.cardinality/many}})
 
-(def conns
-  (reagent/atom {}))
-
-(defn init [uid]
+(defn init [conns uid]
   (let [conn (d/create-conn schema)]
     (posh! conn)
     (swap! conns assoc uid conn)
     conn))
 
-(defn add-conn [uid db]
+(defn add-conn [conns uid db]
   (swap! conns assoc uid
          (doto (d/create-conn schema)
            (d/reset-conn! (edn/read-string {:readers d/data-readers} db))
            (posh!))))
 
-(defn add-entity [uid e]
-  (when-let [conn (@conns uid)]
-    (transact! conn [e])))
+(defn add-entity [conn e]
+  (transact! conn [e]))
+
+(defn retract [conn id]
+  (transact! conn [:db.fn/retractEntity id]))
 
 (defn nodes-q [conn]
   (q '[:find ?e ?name
@@ -36,7 +35,7 @@
        [?e :name ?name]]
      conn))
 
-(defn nodes []
+(defn nodes [conns]
   (reaction
     (doall
       (for [[uid conn] @conns
@@ -52,7 +51,7 @@
        [?e :to ?to]]
      conn))
 
-(defn edges []
+(defn edges [conns]
   (reaction
     (doall
       (concat
@@ -62,7 +61,7 @@
            :uid uid
            :from (str uid "-" from)
            :to (str uid "-" to)})
-        (for [[name nodes] (group-by :name @(nodes))
+        (for [[name nodes] (group-by :name @(nodes conns))
               [a b] (combinatorics/combinations nodes 2)]
           {:db/id (str (:db/id a) "-" (:db/id b))
            :from (:db/id a)

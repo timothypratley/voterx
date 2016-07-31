@@ -136,7 +136,7 @@
 (def next-shape
   (zipmap (keys shapes) (rest (cycle (keys shapes)))))
 
-(defn draw-node [{:keys [id name x y pagerank shape uid]} n max-pagerank idx d3graph force-layout mouse-down? selected-id root editing]
+(defn draw-node [{:keys [id name x y pagerank shape uid]} n max-pagerank idx d3graph force-layout mouse-down? selected-id {:keys [add-edge node-shape]} editing]
   (let [selected? (= id @selected-id)
         rank-scale (if max-pagerank (/ pagerank max-pagerank) 0.5)
         r (scale-dist n rank-scale)]
@@ -155,9 +155,10 @@
         (.preventDefault e)
         (let [new-selected-id (aget d3graph "nodes" idx "id")]
           (when (and (.-shiftKey e) @selected-id new-selected-id)
+            (prn "toot")
             (if (= @selected-id new-selected-id)
-              (swap! root update-in [:nodes new-selected-id :shape] next-shape :triangle)
-              #_(swap! root graph/with-edge [@selected-id new-selected-id])))
+              (node-shape new-selected-id)
+              (add-edge [@selected-id new-selected-id])))
           (reset! selected-id new-selected-id)
           (reset! editing nil))
         (reset! mouse-down? true)
@@ -178,7 +179,7 @@
 (defn rise-over-run [o a]
   (/ (* 180 (js/Math.atan2 o a)) js/Math.PI))
 
-(defn draw-link [[from mid to :as path] nodes d3graph force-layout mouse-down? selected-id root editing]
+(defn draw-link [[from mid to :as path] nodes d3graph force-layout mouse-down? selected-id {:keys [edge-weight]} editing]
   (let [{x1 :x y1 :y} (get nodes from)
         {x2 :x y2 :y id :id} (get nodes mid)
         {x3 :x y3 :y} (get nodes to)
@@ -198,15 +199,15 @@
         (reset! editing nil)
         (when (and (.-shiftKey e) @selected-id)
           (let [[from to] @selected-id]
-            (swap! root update-in [:edges from to :weight]
-                   #(if % nil 1))))
+            (edge-weight from to)))
         (aset d3graph "nodes" mid "fixed" 1))
       :stroke (if selected?
                 "#6699aa"
                 "#9ecae1")}
      [:path
       {:fill "none"
-       :stroke-dasharray (when-let [w (get-in @root [:edges from to :weight])]
+       ;; TODO: pass in the edge
+       #_#_:stroke-dasharray (when-let [w (get-in @root [:edges from to :weight])]
                            (str w "," 5))
        :d (apply str (interleave
                        ["M" "," " " "," " " ","]
@@ -237,7 +238,7 @@
 (defn update-bounds [g]
   (assoc g :bounds (normalize-bounds (reduce bounds [400 400 600 600] (:nodes g)))))
 
-(defn draw-svg [drawable d3graph force-layout mouse-down? selected-id root editing]
+(defn draw-svg [drawable d3graph force-layout mouse-down? selected-id callbacks editing]
   (let [{:keys [nodes paths bounds]} @drawable
         max-pagerank (reduce max (map :pagerank nodes))]
     (into
@@ -245,11 +246,12 @@
        {:view-box (string/join " " bounds)
         :style {:width "100%"
                 :height "100%"}}]
+      ;; TODO: key by id instead!!
       (concat
         (for [path paths]
-          [draw-link path nodes d3graph force-layout mouse-down? selected-id root editing])
+          [draw-link path nodes d3graph force-layout mouse-down? selected-id callbacks editing])
         (for [[node idx] (map vector (remove :to nodes) (range))]
-          [draw-node node (count nodes) max-pagerank idx d3graph force-layout mouse-down? selected-id root editing])))))
+          [draw-node node (count nodes) max-pagerank idx d3graph force-layout mouse-down? selected-id callbacks editing])))))
 
 (defn draw-graph [this drawable d3graph force-layout mouse-down? selected-id editing root]
   [:div
@@ -312,7 +314,7 @@
                :y (.-y node)}
               (.-fixed node) (assoc :pinned? true)))))
 
-(defn graph [nodes edges selected-id editing root]
+(defn graph [nodes edges selected-id editing callbacks]
   (let [d3graph (d3-graph @nodes @edges)
         drawable (reagent/atom {})
         force-layout (create-force-layout
@@ -331,6 +333,6 @@
     (reagent/create-class
       {:display-name "graph"
        :reagent-render
-       (fn graph-render [nodes edges selected-id editing root]
+       (fn graph-render [nodes edges selected-id editing callbacks]
          (.start force-layout)
-         [draw-graph (reagent/current-component) drawable d3graph force-layout mouse-down? selected-id editing root])})))
+         [draw-graph (reagent/current-component) drawable d3graph force-layout mouse-down? selected-id editing callbacks])})))

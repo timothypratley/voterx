@@ -12,14 +12,13 @@
                             (first v)
                             v)])))
 
-(defn add-entity-form []
+(defn add-entity-form [uid conn]
   [:form
    {:on-submit
     (fn edit [e]
       (.preventDefault e)
-      (db/add-entity
-        (:uid @firebase/user)
-        (form-data (.-target e))))}
+      (db/add-entity conn (form-data (.-target e)))
+      (firebase/save ["users" uid "db"] (pr-str @conn)))}
    [:div#name.mdl-textfield.mdl-js-textfield
     {:style {:width "100%"}}
     [:input.mdl-textfield__input.mdl-js-textfield
