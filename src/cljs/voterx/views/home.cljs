@@ -29,7 +29,7 @@
           (when-let [uid (:uid @firebase/user)]
             (when-let [conn (@conns uid)]
               (if (= a b)
-                (db/retract conn (gid2dbid a))
+                (db/retract-node conn (gid2dbid a))
                 (if (= uid (gid2uid a) (gid2uid b))
                   (db/add-entity
                     conn
@@ -132,4 +132,15 @@
            [:div.mdl-cell.mdl-cell--8-col [graph-view conns]]
            (when-let [uid (:uid @firebase/user)]
              (when-let [conn (@conns uid)]
-               [:div.mdl-cell.mdl-cell--4-col [text-entry/add-entity-form uid conn]]))]])])))
+               [:div.mdl-cell.mdl-cell--4-col
+                [text-entry/add-entity-form uid conn]
+                [:div
+                 [:p
+                  "If something goes horribly wrong, you can start again by deleting all your data.
+                  But hopefully you will never need to click on this."]
+                 [:center
+                  [:button
+                   {:on-click
+                    (fn [e]
+                      (firebase/save ["users" uid "db"] nil))}
+                   "Delete all my data"]]]]))]])])))

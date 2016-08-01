@@ -4,7 +4,8 @@
     [cljs.tools.reader.edn :as edn]
     [reagent.core :as reagent]
     [posh.reagent :refer [pull q posh! transact!]]
-    [datascript.core :as d])
+    [datascript.core :as d]
+    [clojure.set :as set])
   (:require-macros
     [reagent.ratom :refer [reaction]]))
 
@@ -33,6 +34,23 @@
   (transact! conn es))
 
 (defn retract [conn id]
+  (transact! conn [[:db.fn/retractEntity id]]))
+
+(defn node-edges [conn id]
+  ;; TODO: make more datalogy
+  (map first (set/union
+               @(q [:find '?e
+                    :where
+                    ['?e :from id]]
+                   conn)
+               @(q [:find '?e
+                    :where
+                    ['?e :to id]]
+                   conn))))
+
+(defn retract-node [conn id]
+  (doseq [e (node-edges conn id)]
+    (transact! conn [[:db.fn/retractEntity e]]))
   (transact! conn [[:db.fn/retractEntity id]]))
 
 (defn nodes-q [conn]
