@@ -14,6 +14,9 @@
 (defn gid2dbid [gid]
   (js/parseInt (second (re-matches #".*-(\d+)" gid))))
 
+(defn gid2uid [gid]
+  (second (re-matches #"(.*)-\d+" gid)))
+
 (defn graph-view [conns]
   (let [nodes (db/nodes conns)
         edges (db/edges conns)
@@ -25,18 +28,41 @@
                        (when-let [conn (@conns uid)]
                          (if (= a b)
                            (db/retract conn (gid2dbid a))
-                           (db/add-entity
-                             conn
-                             {:from (gid2dbid a)
-                              :to (gid2dbid b)}))
+                           (if (= uid (gid2uid a) (gid2uid b))
+                             (db/add-entity
+                               conn
+                               {:from (gid2dbid a)
+                                :to (gid2dbid b)})
+                             (if (= uid (gid2uid b))
+                               (db/add-entities
+                                 conn
+                                 [(assoc (dissoc (first (filter #(= (:db/id %) a) @nodes)) :db/id :uid)
+                                    :db/id -1)
+                                  {:from -1
+                                   :to (gid2dbid b)}])
+                               (if (= uid (gid2uid a))
+                                 (db/add-entities
+                                   conn
+                                   [(assoc (dissoc (first (filter #(= (:db/id %) b) @nodes)) :db/id :uid)
+                                      :db/id -1)
+                                    {:from (gid2dbid a)
+                                     :to -1}])
+                                 (db/add-entities
+                                   conn
+                                   [(assoc (dissoc (first (filter #(= (:db/id %) a) @nodes)) :db/id :uid)
+                                      :db/id -1)
+                                    (assoc (dissoc (first (filter #(= (:db/id %) b) @nodes)) :db/id :uid)
+                                      :db/id -2)
+                                    {:from -1
+                                     :to -2}])))))
                          (firebase/save ["users" uid "db"] (pr-str @conn)))))
                    :shift-click-edge
                    (fn remove-edge [from mid to]
                      (prn "REMOVE" from mid to)
                      ;; TODO: get the entity id for mid!
                      #_(when-let [uid (:uid @firebase/user)]
-                       (when-let [conn (@conns uid)]
-                         (db/retract conn mid))))}]
+                         (when-let [conn (@conns uid)]
+                           (db/retract conn mid))))}]
     (fn a-graph-view []
       [d3/graph nodes edges selected-id editing callbacks])))
 
@@ -53,8 +79,7 @@
     A text entry will appear where you can add new nodes.
     Click on a node, then shift click another node to link them.
     Click on a node, then shift click the same node to delete it.
-    Your data saves whenever you change it.
-    Linking between your data and other people's data is not yet supported."]])
+    Your data saves whenever you change it."]])
 
 (defn md5-hash [s]
   (let [md5 (Md5.)]

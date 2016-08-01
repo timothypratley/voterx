@@ -9,7 +9,8 @@
     [reagent.ratom :refer [reaction]]))
 
 (def schema
-  {:to {:db/cardinality :db.cardinality/many}})
+  {:to {:db/type :db.type/ref}
+   :from {:db/type :db.type/ref}})
 
 (defn init [conns uid]
   (let [conn (d/create-conn schema)]
@@ -19,12 +20,17 @@
 
 (defn add-conn [conns uid db]
   (swap! conns assoc uid
-         (doto (d/create-conn schema)
-           (d/reset-conn! (edn/read-string {:readers d/data-readers} db))
-           (posh!))))
+         (let [conn (d/create-conn schema)]
+           (when db
+             (d/reset-conn! conn (edn/read-string {:readers d/data-readers} db)))
+           (posh! conn)
+           conn)))
 
 (defn add-entity [conn e]
   (transact! conn [e]))
+
+(defn add-entities [conn es]
+  (transact! conn es))
 
 (defn retract [conn id]
   (transact! conn [[:db.fn/retractEntity id]]))
