@@ -192,7 +192,7 @@
         (reset! selected-id (aget d3graph "nodes" mid "id"))
         (reset! editing nil)
         (when (.-shiftKey e)
-          (shift-click-edge from mid to))
+          (shift-click-edge (get nodes mid)))
         (aset d3graph "nodes" mid "fixed" 1))
       :stroke (if selected?
                 "#6699aa"

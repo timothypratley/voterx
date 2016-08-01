@@ -21,50 +21,50 @@
   (let [nodes (db/nodes conns)
         edges (db/edges conns)
         selected-id (reagent/atom nil)
-        editing (reagent/atom nil)
-        callbacks {:shift-click-node
-                   (fn create-edge-or-remove-node [a b]
-                     (when-let [uid (:uid @firebase/user)]
-                       (when-let [conn (@conns uid)]
-                         (if (= a b)
-                           (db/retract conn (gid2dbid a))
-                           (if (= uid (gid2uid a) (gid2uid b))
-                             (db/add-entity
-                               conn
-                               {:from (gid2dbid a)
-                                :to (gid2dbid b)})
-                             (if (= uid (gid2uid b))
-                               (db/add-entities
-                                 conn
-                                 [(assoc (dissoc (first (filter #(= (:db/id %) a) @nodes)) :db/id :uid)
-                                    :db/id -1)
-                                  {:from -1
-                                   :to (gid2dbid b)}])
-                               (if (= uid (gid2uid a))
-                                 (db/add-entities
-                                   conn
-                                   [(assoc (dissoc (first (filter #(= (:db/id %) b) @nodes)) :db/id :uid)
-                                      :db/id -1)
-                                    {:from (gid2dbid a)
-                                     :to -1}])
-                                 (db/add-entities
-                                   conn
-                                   [(assoc (dissoc (first (filter #(= (:db/id %) a) @nodes)) :db/id :uid)
-                                      :db/id -1)
-                                    (assoc (dissoc (first (filter #(= (:db/id %) b) @nodes)) :db/id :uid)
-                                      :db/id -2)
-                                    {:from -1
-                                     :to -2}])))))
-                         (firebase/save ["users" uid "db"] (pr-str @conn)))))
-                   :shift-click-edge
-                   (fn remove-edge [from mid to]
-                     (prn "REMOVE" from mid to)
-                     ;; TODO: get the entity id for mid!
-                     #_(when-let [uid (:uid @firebase/user)]
-                         (when-let [conn (@conns uid)]
-                           (db/retract conn mid))))}]
+        editing (reagent/atom nil)]
     (fn a-graph-view []
-      [d3/graph nodes edges selected-id editing callbacks])))
+      [d3/graph nodes edges selected-id editing
+       {:shift-click-node
+        (fn create-edge-or-remove-node [a b]
+          (when-let [uid (:uid @firebase/user)]
+            (when-let [conn (@conns uid)]
+              (if (= a b)
+                (db/retract conn (gid2dbid a))
+                (if (= uid (gid2uid a) (gid2uid b))
+                  (db/add-entity
+                    conn
+                    {:from (gid2dbid a)
+                     :to (gid2dbid b)})
+                  (if (= uid (gid2uid b))
+                    (db/add-entities
+                      conn
+                      [(assoc (dissoc (first (filter #(= (:db/id %) a) @nodes)) :db/id :uid)
+                         :db/id -1)
+                       {:from -1
+                        :to (gid2dbid b)}])
+                    (if (= uid (gid2uid a))
+                      (db/add-entities
+                        conn
+                        [(assoc (dissoc (first (filter #(= (:db/id %) b) @nodes)) :db/id :uid)
+                           :db/id -1)
+                         {:from (gid2dbid a)
+                          :to -1}])
+                      (db/add-entities
+                        conn
+                        [(assoc (dissoc (first (filter #(= (:db/id %) a) @nodes)) :db/id :uid)
+                           :db/id -1)
+                         (assoc (dissoc (first (filter #(= (:db/id %) b) @nodes)) :db/id :uid)
+                           :db/id -2)
+                         {:from -1
+                          :to -2}])))))
+              (firebase/save ["users" uid "db"] (pr-str @conn)))))
+        :shift-click-edge
+        (fn remove-edge [edge]
+          (when-let [uid (:uid @firebase/user)]
+            (when (= uid (:uid edge))
+              (when-let [conn (@conns uid)]
+                (db/retract conn (gid2dbid (:id edge)))
+                (firebase/save ["users" uid "db"] (pr-str @conn))))))}])))
 
 (defn navbar []
   [:div
