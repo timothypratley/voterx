@@ -13,7 +13,7 @@ https://voterx-e88a1.firebaseapp.com/devcards.html
 Build a graph of your data.
 View other people's graph.
 See where you overlap.
-![screenshot](//voterx-e88a1.firebaseapp.com/screenshot.png)
+![screenshot](https://voterx-e88a1.firebaseapp.com/screenshot.png)
 
 # Development
 
