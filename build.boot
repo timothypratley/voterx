@@ -12,7 +12,7 @@
                  [reagent "0.6.0-rc"]
                  [devcards "0.2.1-7"]
                  [cljsjs/d3 "3.5.16-0"]
-                 [cljsjs/firebase "3.2.0-0"]])
+                 [cljsjs/firebase "3.2.1-0"]])
 
 (require
  '[adzerk.boot-cljs      :refer [cljs]]

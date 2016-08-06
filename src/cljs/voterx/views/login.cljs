@@ -13,7 +13,7 @@
       [:button.mdl-button.mdl-js-button.mdl-button--fab.mdl-button--colored
        {:on-click
         (fn logout-click [e]
-          (firebase/logout))
+          (firebase/sign-out))
         :title displayName
         :style {:background-image (str "url(" photoURL ")")
                 :background-size "cover"
@@ -21,7 +21,7 @@
      [:button.mdl-button.mdl-js-button.mdl-button--raised.mdl-button--colored
       {:on-click
        (fn login-click [e]
-         (firebase/sign-in-with-popup))}
+         (firebase/sign-in))}
       "Login with Google"])])
 
 (defcard-rg login-card

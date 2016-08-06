@@ -30,12 +30,16 @@
       (let [uid (.-uid user-obj)
             display-name (.-displayName user-obj)
             photo-url (.-photoURL user-obj)]
-        (save ["users" uid "settings"]
-              #js {:photo-url photo-url
-                   :display-name display-name})
-        (reset! user {:photoURL photo-url
-                      :displayName display-name
-                      :uid uid})))
+        (if uid
+          (do
+            (save ["users" uid "settings"]
+                  #js {:photo-url photo-url
+                       :display-name display-name})
+            (reset! user {:photoURL photo-url
+                          :displayName display-name
+                          :uid uid}))
+          (when @user
+            (reset! user nil)))))
     (fn auth-error [error]
       (js/console.log error))))
 
@@ -114,12 +118,12 @@
             (println "Received change" @a)
             [:div @a])])])))
 
-(defn sign-in-with-popup []
-  (.signInWithPopup
+(defn sign-in []
+  (.signInWithRedirect
     (js/firebase.auth.)
     (js/firebase.auth.GoogleAuthProvider.)))
 
-(defn logout []
+(defn sign-out []
   ;; TODO: add then/error handlers
   (.signOut (js/firebase.auth))
   (reset! user nil))
