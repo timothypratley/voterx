@@ -151,7 +151,7 @@
         (.stopPropagation e)
         (.preventDefault e)
         (let [new-selected-id (aget d3graph "nodes" idx "id")]
-          (when (and (.-shiftKey e) @selected-id new-selected-id)
+          (when (and shift-click-node (.-shiftKey e) @selected-id new-selected-id)
             (shift-click-node @selected-id new-selected-id))
           (reset! selected-id new-selected-id)
           (reset! editing nil))
@@ -191,7 +191,7 @@
         (reset! mouse-down? true)
         (reset! selected-id (aget d3graph "nodes" mid "id"))
         (reset! editing nil)
-        (when (.-shiftKey e)
+        (when (and shift-click-edge (.-shiftKey e))
           (shift-click-edge (get nodes mid)))
         (aset d3graph "nodes" mid "fixed" 1))
       :stroke (if selected?

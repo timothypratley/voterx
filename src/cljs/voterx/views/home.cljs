@@ -4,10 +4,12 @@
     [voterx.firebase :as firebase]
     [voterx.views.login :as login]
     [voterx.views.d3 :as d3]
+    [voterx.views.draw :as draw]
     [voterx.views.text-entry :as text-entry]
     [reagent.core :as reagent]
     [clojure.string :as string]
-    [goog.crypt :as crypt])
+    [goog.crypt :as crypt]
+    [cljs.tools.reader.edn :as edn])
   (:import
     [goog.crypt Md5]))
 
@@ -65,6 +67,13 @@
               (when-let [conn (@conns uid)]
                 (db/retract conn (gid2dbid (:id edge)))
                 (firebase/save ["users" uid "db"] (pr-str @conn))))))}])))
+
+(defn draw-view []
+  [draw/draw
+   {:save
+    (fn [svg]
+      (when-let [uid (:uid @firebase/user)]
+        (firebase/save ["users" uid "drawing"] (pr-str svg))))}])
 
 (defn navbar []
   [:div
@@ -129,7 +138,8 @@
           [navbar]
           [db-selector conns on off]
           [:div.mdl-grid
-           [:div.mdl-cell.mdl-cell--8-col [graph-view conns]]
+           [:div.mdl-cell.mdl-cell--8-col
+            [graph-view conns]]
            (when-let [uid (:uid @firebase/user)]
              (when-let [conn (@conns uid)]
                [:div.mdl-cell.mdl-cell--4-col
@@ -143,4 +153,13 @@
                    {:on-click
                     (fn [e]
                       (firebase/save ["users" uid "db"] nil))}
-                   "Delete all my data"]]]]))]])])))
+                   "Delete all my data"]]]]))
+           [:div.mdl-cell.mdl-cell--6-col
+            [draw-view]]
+           [:div.mdl-cell.mdl-cell--6-col
+            [firebase/on ["users"]
+             (fn [users]
+               [draw/view
+                (vec (for [[uid user] (js->clj @users)]
+                       [{:stroke (str "rgb(" (string/join "," (d3/color-for uid)) ")")}
+                        (edn/read-string (get user "drawing"))]))])]]]])])))

@@ -13,6 +13,16 @@
   {:to {:db/type :db.type/ref}
    :from {:db/type :db.type/ref}})
 
+(def the-real-schema
+  {:node/name
+   :node/body
+   :anchor/from-node
+   :anchor/from-subregion
+   :anchor/to-node
+   :anchor/to-subregion
+   :set/anchors
+   :set/query})
+
 (defn init [conns uid]
   (let [conn (d/create-conn schema)]
     (posh! conn)
