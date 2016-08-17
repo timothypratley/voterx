@@ -105,25 +105,25 @@
           ^{:key uid}
           [:li.mdl-list__item
            {:style {:padding "0px"}}
-           [:input.mdl-checkbox__input
-            {:type "checkbox"
-             :on-change
-             (fn [e]
-               (if (.. e -target -checked)
-                 (on ["users" uid "db"])
-                 (off ["users" uid "db"])))}]
-           [:span {:style {:background-color (str "rgb(" (string/join "," (d3/color-for uid)) ")")}}
+           [:label
             (let [photo-url (or (some-> user (get "settings") (get "photo-url"))
                                 (str "//www.gravatar.com/avatar/" (md5-hash uid) "?d=wavatar"))]
-              [:button.mdl-button.mdl-js-button.mdl-button--fab.mdl-button--colored
+              [:span.mdl-button.mdl-js-button.mdl-button--fab.mdl-button--colored
                {:style {:background-image (str "url(" photo-url ")")
                         :background-size "cover"
-                        :background-repeat "no-repeat"}}])]
-           [:span (or (some-> user (get "settings") (get "display-name")) uid)]
-           (when (= uid (:uid @firebase/user))
-             [:strong "(my data)"])
-           (when (@conns uid)
-             [:strong "(loaded)"])]))])])
+                        :background-repeat "no-repeat"}}])
+            [:span
+             {:style {:background-color (str "rgb(" (string/join "," (d3/color-for uid)) ")")}}
+             [:input.mdl-checkbox__input
+              {:type "checkbox"
+               :on-change
+               (fn [e]
+                 (if (.. e -target -checked)
+                   (on ["users" uid "db"])
+                   (off ["users" uid "db"])))}]]
+            [:span (or (some-> user (get "settings") (get "display-name")) uid)]
+            (when (= uid (:uid @firebase/user))
+              [:strong "(my data)"])]]))])])
 
 (defn home []
   (let [conns (reagent/atom {})
@@ -160,6 +160,7 @@
             [firebase/on ["users"]
              (fn [users]
                [draw/view
-                (vec (for [[uid user] (js->clj @users)]
-                       [{:stroke (str "rgb(" (string/join "," (d3/color-for uid)) ")")}
-                        (edn/read-string (get user "drawing"))]))])]]]])])))
+                (vec
+                  (for [[uid user] (js->clj @users)]
+                    [{:stroke (str "rgb(" (string/join "," (d3/color-for uid)) ")")}
+                     (edn/read-string (get user "drawing"))]))])]]]])])))

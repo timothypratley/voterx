@@ -21,7 +21,6 @@
 
 (defonce user
   (reagent/atom nil))
-
 (defn on-auth []
   (.onAuthStateChanged
     (js/firebase.auth)
