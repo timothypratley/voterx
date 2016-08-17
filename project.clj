@@ -1,6 +1,8 @@
 (defproject
   boot-project
   "0.0.0-SNAPSHOT"
+  :comment
+  "Generated from build.boot for Cursive"
   :dependencies
   [[adzerk/boot-cljs "1.7.228-1" :scope "test"]
    [adzerk/boot-reload "0.4.12" :scope "test"]
