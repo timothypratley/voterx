@@ -71,9 +71,13 @@
 (defn draw-view []
   [draw/draw
    {:save
-    (fn [svg]
-      (when-let [uid (:uid @firebase/user)]
-        (firebase/save ["users" uid "drawing"] (pr-str svg))))}])
+    (fn [{:keys [svg title notes]}]
+      (when title
+        (when-let [uid (:uid @firebase/user)]
+          (firebase/save ["users" uid "drawing" title]
+                         #js {:svg (pr-str svg)
+                              :created (.toString (js/Date.))
+                              :notes notes}))))}])
 
 (defn navbar []
   [:div
@@ -161,6 +165,7 @@
              (fn [users]
                [draw/view
                 (vec
-                  (for [[uid user] (js->clj @users)]
+                  (for [[uid user] (js->clj @users)
+                        [title {:strs [svg notes]}] (get user "drawing")]
                     [{:stroke (str "rgb(" (string/join "," (d3/color-for uid)) ")")}
-                     (edn/read-string (get user "drawing"))]))])]]]])])))
+                     (edn/read-string svg)]))])]]]])])))

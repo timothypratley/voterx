@@ -1,7 +1,7 @@
 (ns voterx.views.draw
   (:require
     [reagent.core :as reagent]
-    [voterx.firebase :as firebase]
+    [voterx.names :as names]
     [devcards.core]
     [clojure.string :as string])
   (:require-macros
@@ -30,6 +30,8 @@
 
 (defn draw [{:keys [save]}]
   (let [svg (reagent/atom [])
+        title (reagent/atom (names/sketch-name))
+        notes (reagent/atom nil)
         img (reagent/atom nil)
         pen-down? (reagent/atom false)
         mode (reagent/atom ::draw)
@@ -50,7 +52,9 @@
           (continue-path e)
           (reset! pen-down? false)
           (when save
-            (save @svg)))
+            (save {:title @title
+                   :svg @svg
+                   :notes @notes})))
         select
         (fn [e]
           (reset! selected (.-target e)))
@@ -68,8 +72,8 @@
           {:style {:border "1px solid"
                    ;; TODO: use css and all browsers
                    :-webkit-user-select "none"}
-           :width 400
-           :height 400}
+           :width "100%"
+           :height "90vh"}
           (if (= @mode ::edit)
             {:style {:cursor "move"}
              :on-touch-start (one-touch-handler select)
@@ -103,23 +107,32 @@
                :stroke-width 5}]
           (for [elem @svg]
             (prepare elem @mode)))]
+       [:input {:type "text"
+                :style {:width "100%"}
+                :default-value @title
+                :on-change
+                (fn title-changed [e]
+                  (reset! title (.. e -target -value)))}]
        [:div
+        [:span.mdl-button.mdl-button--icon
+         {:on-click
+          (fn click-save [e]
+            (when save
+              (save {:title @title
+                     :svg @svg
+                     :notes @notes})))}
+         [:i.material-icons "save"]]
         (if (= @mode ::edit)
           [:span.mdl-button.mdl-button--icon
            {:on-click
-            (fn [e]
+            (fn draw-mode [e]
               (reset! mode ::draw))}
            [:i.material-icons "edit"]]
           [:span.mdl-button.mdl-button--icon
            {:on-click
-            (fn [e]
+            (fn edit-mode [e]
               (reset! mode ::edit))}
            [:i.material-icons "adjust"]])
-        [:span.mdl-button.mdl-button--icon
-         {:on-click
-          (fn [e]
-            (save @svg))}
-         [:i.material-icons "save"]]
         (if @img
           [:span.mdl-button.mdl-button--icon.active
            {:on-click
@@ -143,10 +156,16 @@
         [:span.mdl-button.mdl-button--icon [:i.material-icons "redo"]]
         [:span.mdl-button.mdl-button--icon
          {:on-click
-          (fn [e]
+          (fn clear [e]
             (reset! img nil)
             (reset! svg []))}
-         [:i.material-icons "delete"]]]])))
+         [:i.material-icons "delete"]]]
+       [:textarea
+        {:rows 5
+         :style {:width "100%"}
+         :on-change
+         (fn notes-entered [e]
+           (reset! notes (.. e -target -value)))}]])))
 
 (defn view [svgs]
   (into
@@ -154,8 +173,8 @@
      {:style {:border "1px solid"
               :cursor "none"
               :-webkit-user-select "none"}
-      :width 400
-      :height 400}]
+      :width "100%"
+      :height "90vh"}]
     (for [[properties svg] svgs]
       (into
         [:g (merge {:fill "none"
