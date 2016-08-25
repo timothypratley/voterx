@@ -183,7 +183,7 @@
 
 (defn navbar [handler]
   [:header.mdl-layout__header
-   [:div
+   [:div.mdl-layout__header-row
     [:span.mdl-layout-title
      [:img {:src "brand.jpg"
             :style {:height "50px"
@@ -211,7 +211,6 @@
   (let [{:keys [handler route-params]} (bidi/match-route routes (:route @app-state))]
     [:div.mdl-layout.mdl-layout--fixed-header
      [navbar handler]
-     [login/login-view]
      [:main.mdl-layout__content
       [:section
        [handler route-params]]]]))
