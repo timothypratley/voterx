@@ -5,9 +5,11 @@
     [voterx.views.login :as login]
     [voterx.views.d3 :as d3]
     [voterx.views.draw :as draw]
+    [voterx.views.gallery :as gallery]
     [voterx.views.text-entry :as text-entry]
-    [reagent.core :as reagent]
     [clojure.string :as string]
+    [reagent.core :as reagent]
+    [bidi.bidi :as bidi]
     [goog.crypt :as crypt]
     [cljs.tools.reader.edn :as edn])
   (:import
@@ -68,31 +70,26 @@
                 (db/retract conn (gid2dbid (:id edge)))
                 (firebase/save ["users" uid "db"] (pr-str @conn))))))}])))
 
-(defn draw-view []
-  [draw/draw
-   {:save
-    (fn [{:keys [svg title notes]}]
-      (when title
-        (when-let [uid (:uid @firebase/user)]
-          (firebase/save ["users" uid "drawing" title]
-                         #js {:svg (pr-str svg)
-                              :created (.toString (js/Date.))
-                              :notes notes}))))}])
-
-(defn navbar []
-  [:div
-   [:h1
-    [:img {:src "brand.jpg"
-           :style {:height "75px"}}]
-    "Voter"
-    [:span {:style {:font-family "cursive"}} "X"]]
-   [login/login-view]
-   [:p
-    "Welcome! You need to be logged in and have checked yourself in the list of databases to edit your data.
-    A text entry will appear where you can add new nodes.
-    Click on a node, then shift click another node to link them.
-    Click on a node, then shift click the same node to delete it.
-    Your data saves whenever you change it."]])
+(defn draw-view [{:keys [id]}]
+  (if-let [uid (:uid @firebase/user)]
+    (let [svg (reagent/atom [])
+          r (if (= id "new")
+              (doto (firebase/push ["users" uid "drawings"])
+                (->> (.-key) (str "#/draw/") (set! js/window.location.hash)))
+              (doto (firebase/db-ref ["users" uid "drawings" id])
+                (.once "value" (fn [snapshot]
+                                 ;; TODO: pass title etc too?? as state?
+                                 (swap! svg #(into (or (some-> (.val snapshot) (.-svg) (edn/read-string)) []) %))))))]
+      [draw/draw
+       {:dims [400 400]
+        :svg svg
+        :save
+        (fn [{:keys [svg title notes]}]
+          (when title
+            (.set r #js {:svg (pr-str svg)
+                         :created firebase/timestamp
+                         :notes notes})))}])
+    [:h2 "Must be logged in to draw"]))
 
 (defn md5-hash [s]
   (let [md5 (Md5.)]
@@ -101,45 +98,55 @@
 
 (defn db-selector [conns on off]
   ;; TODO: how to avoid loading the "db" subpath?
-  [firebase/on ["users"]
-   (fn [users]
-     [:ul.mdl-list
-      (doall
-        (for [[uid user] (js->clj @users)]
-          ^{:key uid}
-          [:li.mdl-list__item
-           {:style {:padding "0px"}}
-           [:label
-            (let [photo-url (or (some-> user (get "settings") (get "photo-url"))
-                                (str "//www.gravatar.com/avatar/" (md5-hash uid) "?d=wavatar"))]
-              [:span.mdl-button.mdl-js-button.mdl-button--fab.mdl-button--colored
-               {:style {:background-image (str "url(" photo-url ")")
-                        :background-size "cover"
-                        :background-repeat "no-repeat"}}])
-            [:span
-             {:style {:background-color (str "rgb(" (string/join "," (d3/color-for uid)) ")")}}
-             [:input.mdl-checkbox__input
-              {:type "checkbox"
-               :on-change
-               (fn [e]
-                 (if (.. e -target -checked)
-                   (on ["users" uid "db"])
-                   (off ["users" uid "db"])))}]]
-            [:span (or (some-> user (get "settings") (get "display-name")) uid)]
-            (when (= uid (:uid @firebase/user))
-              [:strong "(my data)"])]]))])])
+  ;; TODO: expose the on set as part of firebase hof
+  (let [selected (reagent/atom #{})]
+    [firebase/on ["users"]
+     (fn [users]
+       [:ul
+        (doall
+          (for [[uid user] (js->clj @users)]
+            ^{:key uid}
+            [:li
+             {:style {:display "inline-block"}}
+             [:div
+              {:style {:background-color (when (@selected uid)
+                                           (d3/rgb (d3/color-for uid)))
+                       :border (when (= uid (:uid @firebase/user)) "1px solid black")}}
+              (let [photo-url (or (some-> user (get "settings") (get "photo-url"))
+                                  (str "//www.gravatar.com/avatar/" (md5-hash uid) "?d=wavatar"))]
+                [:div.mdl-button.mdl-button--fab.mdl-button--colored
+                 {:title (or (some-> user (get "settings") (get "display-name")) uid)
+                  :style {:background-image (str "url(" photo-url ")")
+                          :background-size "cover"
+                          :background-repeat "no-repeat"}
+                  :on-click
+                  (fn uid-selected [e]
+                    (if (@selected uid)
+                      (do
+                        (swap! selected disj uid)
+                        (off ["users" uid "db"]))
+                      (do
+                        (swap! selected conj uid)
+                        (on ["users" uid "db"]))))}])
+              (when
+                [:strong "(my data)"])]]))])]))
 
-(defn home []
+(defn graph-edit [params]
   (let [conns (reagent/atom {})
         add-conn (fn add-conn [path x]
                    (db/add-conn conns (second path) x))
         clear-conn (fn clear-conn [path]
                      (swap! conns dissoc (second path)))]
-    (fn []
+    (fn [params]
       [firebase/with-refs-only add-conn clear-conn
        (fn home-component [on off]
-         [:div
-          [navbar]
+         [:section
+          [:p
+           "Welcome! You need to be logged in and have checked yourself in the list of databases to edit your data.
+           A text entry will appear where you can add new nodes.
+           Click on a node, then shift click another node to link them.
+           Click on a node, then shift click the same node to delete it.
+           Your data saves whenever you change it."]
           [db-selector conns on off]
           [:div.mdl-grid
            [:div.mdl-cell.mdl-cell--8-col
@@ -157,15 +164,54 @@
                    {:on-click
                     (fn [e]
                       (firebase/save ["users" uid "db"] nil))}
-                   "Delete all my data"]]]]))
-           [:div.mdl-cell.mdl-cell--6-col
-            [draw-view]]
-           [:div.mdl-cell.mdl-cell--6-col
-            [firebase/on ["users"]
-             (fn [users]
-               [draw/view
-                (vec
-                  (for [[uid user] (js->clj @users)
-                        [title {:strs [svg notes]}] (get user "drawing")]
-                    [{:stroke (str "rgb(" (string/join "," (d3/color-for uid)) ")")}
-                     (edn/read-string svg)]))])]]]])])))
+                   "Delete all my data"]]]]))]])])))
+
+(defn about [params]
+  [:div "Todo: write an about"])
+
+(def links
+  {"gallery" gallery/all-gallery
+   ["view" "/" :uid "/" :id] draw/view-drawing
+   ["draw" "/" :id] draw-view
+   "graph" graph-edit
+   "about" about})
+
+(def routes
+  [""
+   [["/" links]
+    [true gallery/all-gallery]]])
+
+(defn navbar [handler]
+  [:header.mdl-layout__header
+   [:div
+    [:span.mdl-layout-title
+     [:img {:src "brand.jpg"
+            :style {:height "50px"
+                    :margin-right "20px"
+                    :border-radius "5px"}}]
+     "Voter"
+     [:span {:style {:font-family "cursive"}} "X"]]
+    [:div.mdl-layout-spacer]
+    [:nav.mdl-navigation
+     (doall
+       (for [[p h] links
+             :let [title (string/capitalize
+                           (if (sequential? p)
+                             (first p)
+                             p))]]
+         [:a.mdl-navigation__link
+          {:key title
+           :href (str "#" (bidi/path-for routes h :id "new" :uid "none"))
+           :style (when (= h handler)
+                    {:box-shadow "inset 0 -10px 10px -10px #FF0000"})}
+          title]))]
+    [login/login-view]]])
+
+(defn home [app-state]
+  (let [{:keys [handler route-params]} (bidi/match-route routes (:route @app-state))]
+    [:div.mdl-layout.mdl-layout--fixed-header
+     [navbar handler]
+     [login/login-view]
+     [:main.mdl-layout__content
+      [:section
+       [handler route-params]]]]))

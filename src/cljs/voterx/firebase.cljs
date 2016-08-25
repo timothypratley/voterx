@@ -13,14 +13,25 @@
   (:require-macros
     [devcards.core :refer [defcard-rg]]))
 
+(def timestamp
+  js/firebase.database.ServerValue.TIMESTAMP)
+
 (defn db-ref [path]
   (.ref (js/firebase.database) (string/join "/" path)))
 
 (defn save [path value]
   (.set (db-ref path) value))
 
+(defn push
+  ([path] (.push (db-ref path)))
+  ([path value] (.push (db-ref path) value)))
+
+(defn delete [path]
+  (.remove (db-ref path) (fn [e])))
+
 (defonce user
   (reagent/atom nil))
+
 (defn on-auth []
   (.onAuthStateChanged
     (js/firebase.auth)
@@ -118,6 +129,7 @@
             [:div @a])])])))
 
 (defn sign-in []
+  ;; TODO: use Credential for mobile.
   (.signInWithRedirect
     (js/firebase.auth.)
     (js/firebase.auth.GoogleAuthProvider.)))

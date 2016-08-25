@@ -3,21 +3,13 @@
     [reagent.core :as reagent]
     [voterx.firebase :as firebase]
     [voterx.views.home :as main]
-    [devcards.core])
+    [devcards.core]
+    [goog.events :as events]
+    [goog.history.EventType :as EventType])
   (:require-macros
-    [devcards.core :refer [defcard]]))
-
-(enable-console-print!)
-
-(defn render []
-  (when-let [element (.getElementById js/document "container")]
-    (reagent/render-component
-      [main/home]
-      element)))
-
-(defn init []
-  (firebase/init)
-  (render))
+    [devcards.core :refer [defcard]])
+  (:import
+    [goog History]))
 
 (defcard
   "### -- Agenda --
@@ -31,3 +23,23 @@
        * Use or provide externs
        * Follow CLJSJS as a blueprint
   #### 7. Review JavaScript interop")
+
+(defonce app-state (reagent/atom {}))
+
+(enable-console-print!)
+
+(defn render []
+  (when-let [element (.getElementById js/document "container")]
+    (reagent/render-component
+      [main/home app-state]
+      element)))
+
+(defn navigation [event]
+  (swap! app-state assoc :route (.-token event)))
+
+(defn init []
+  (doto (History.)
+    (events/listen EventType/NAVIGATE navigation)
+    (.setEnabled true))
+  (firebase/init)
+  (render))

@@ -3,14 +3,22 @@
     [reagent.core :as reagent]
     [voterx.names :as names]
     [devcards.core]
-    [clojure.string :as string])
+    [clojure.string :as string]
+    [voterx.firebase :as firebase]
+    [cljs.tools.reader.edn :as edn])
   (:require-macros
     [devcards.core :refer [defcard-rg]]))
 
-(defn xy [e]
+(defn xy [e [width height]]
   (let [rect (.getBoundingClientRect (or (.-currentTarget e) (.-target e)))]
-    [(- (.-clientX e) (.-left rect))
-     (- (.-clientY e) (.-top rect))]))
+    [(-> (- (.-clientX e) (.-left rect))
+         (/ (.-width rect))
+         (* width)
+         (js/Math.round))
+     (-> (- (.-clientY e) (.-top rect))
+         (/ (.-height rect))
+         (* height)
+         (js/Math.round))]))
 
 (defn prepare [path mode]
   (if (= mode ::edit)
@@ -28,8 +36,8 @@
       (let [touch (aget e "targetTouches" 0)]
         (f touch)))))
 
-(defn draw [{:keys [save]}]
-  (let [svg (reagent/atom [])
+(defn draw [{:keys [svg save dims]}]
+  (let [svg (or svg (reagent/atom []))
         title (reagent/atom (names/sketch-name))
         notes (reagent/atom nil)
         img (reagent/atom nil)
@@ -40,21 +48,22 @@
         (fn start-path [e]
           (when (not= (.-buttons e) 0)
             (reset! pen-down? true)
-            (let [[x y] (xy e)]
+            (let [[x y] (xy e dims)]
               (swap! svg conj [:path {:d ['M x y 'L x y]}]))))
         continue-path
         (fn continue-path [e]
           (when @pen-down?
-            (let [[x y] (xy e)]
+            (let [[x y] (xy e dims)]
               (swap! svg #(update-in % [(dec (count %)) 1 :d] conj x y)))))
         end-path
         (fn end-path [e]
-          (continue-path e)
-          (reset! pen-down? false)
-          (when save
-            (save {:title @title
-                   :svg @svg
-                   :notes @notes})))
+          (when @pen-down?
+            (continue-path e)
+            (reset! pen-down? false)
+            (when save
+              (save {:title @title
+                     :svg @svg
+                     :notes @notes}))))
         select
         (fn [e]
           (reset! selected (.-target e)))
@@ -64,16 +73,15 @@
         drop
         (fn [e]
           (prn "drop"))]
-    (fn a-draw [attrs]
+    (fn a-draw [{:keys [save dims]}]
       [:div
        [:svg
         (merge-with
           merge
-          {:style {:border "1px solid"
+          {:view-box (string/join " " (concat [0 0] dims))
+           :style {:border "1px solid black"
                    ;; TODO: use css and all browsers
-                   :-webkit-user-select "none"}
-           :width "100%"
-           :height "90vh"}
+                   :-webkit-user-select "none"}}
           (if (= @mode ::edit)
             {:style {:cursor "move"}
              :on-touch-start (one-touch-handler select)
@@ -95,14 +103,13 @@
              :on-mouse-up end-path
              :on-touch-cancel (one-touch-handler end-path)
              :on-mouse-out end-path}))
-        [:image {:xlink-href @img
-                 :width "100%"
-                 :height "100%"
-                 :opacity 0.3}]
+        (when @img
+          [:image {:xlink-href @img
+                   :width "100%"
+                   :height "100%"
+                   :opacity 0.3}])
         (into
-          ;; don't really need pointer-events none with currentTarget
-          [:g {:style {:pointer-events "none"}
-               :fill "none"
+          [:g {:fill "none"
                :stroke "black"
                :stroke-width 5}]
           (for [elem @svg]
@@ -151,9 +158,12 @@
                        (fn [e]
                          (reset! img (.. e -target -result))))
                  (.readAsDataURL r (aget (.. e -target -files) 0))))}]
-           [:span.mdl-button.mdl-button--icon [:i.material-icons "image"]]])
-        [:span.mdl-button.mdl-button--icon [:i.material-icons "undo"]]
-        [:span.mdl-button.mdl-button--icon [:i.material-icons "redo"]]
+           [:span.mdl-button.mdl-button--icon
+            [:i.material-icons "image"]]])
+        [:span.mdl-button.mdl-button--icon
+         [:i.material-icons "undo"]]
+        [:span.mdl-button.mdl-button--icon
+         [:i.material-icons "redo"]]
         [:span.mdl-button.mdl-button--icon
          {:on-click
           (fn clear [e]
@@ -167,21 +177,45 @@
          (fn notes-entered [e]
            (reset! notes (.. e -target -value)))}]])))
 
-(defn view [svgs]
-  (into
-    [:svg
-     {:style {:border "1px solid"
-              :cursor "none"
-              :-webkit-user-select "none"}
-      :width "100%"
-      :height "90vh"}]
-    (for [[properties svg] svgs]
-      (into
-        [:g (merge {:fill "none"
-                    :stroke-width 5}
-                   properties)]
-        (for [elem svg]
-          (prepare elem ::draw))))))
-
 (defcard-rg draw-card
-  draw)
+  [draw {:dims [400 400]}])
+
+(defn prepare-svg [tag properties elems]
+  (into
+    [tag (merge {:fill "none"
+                 :stroke "black"
+                 :stroke-width 5}
+               properties)]
+    (for [elem elems]
+      (prepare elem ::draw))))
+
+(defn view-drawing [{:keys [uid id]}]
+  [firebase/on ["users" uid "drawings" id]
+   (fn [svg]
+     [prepare-svg :svg
+      {:view-box "0 0 400 400"
+       :style {:border "1px solid black"
+               :cursor "none"
+               ;; TODO: moar browzazs
+               :-webkit-user-select "none"}}
+      (edn/read-string (some-> @svg (.-svg)))])])
+
+(defn sorted-by-width []
+  (let [ss (reagent/atom {"the" nil
+                          "quick" nil
+                          "brown" nil
+                          "fox" nil})]
+    (fn a-sorted-by-width []
+      [:ul
+       (for [[s width] (sort-by val @ss)]
+         ^{:key s}
+         [:li
+          [:span
+           {:ref (fn text-ref [elem]
+                   (when elem
+                     (swap! ss assoc s (.-width (.getBoundingClientRect elem)))))
+            :visibility (if width "visible" "hidden")}
+           s]])])))
+
+(defcard-rg by-size
+  sorted-by-width)
