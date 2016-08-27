@@ -13,7 +13,7 @@
                  [devcards "0.2.1-7"]
                  [bidi "2.0.9"]
                  [cljsjs/d3 "3.5.16-0"]
-                 [cljsjs/firebase "3.2.0-0"]])
+                 [cljsjs/firebase "3.3.0-0"]])
 
 (require
  '[adzerk.boot-cljs      :refer [cljs]]
@@ -21,7 +21,7 @@
  '[pandeiro.boot-http    :refer [serve]])
 
 (deftask build []
-  (comp (speak)
+  (comp ;;(speak)
         (cljs)))
 
 (deftask run []

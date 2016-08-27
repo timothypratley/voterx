@@ -32,14 +32,32 @@
 (defonce user
   (reagent/atom nil))
 
+(defn is-user-equal [google-user firebase-user]
+  (and
+    firebase-user
+    (some
+      #(and (= (.-providerId %) js/firebase.auth.GoogleAuthProvider.PROVIDER_ID)
+            (= (.-uid %) (.getId (.getBasicProfile google-user))))
+      (:providerData firebase-user))))
+
+(defn ^:export onSignIn [google-user]
+  (when (not (is-user-equal google-user @user))
+    (.catch
+      (.signInWithCredential
+        (js/firebase.auth)
+        (js/firebase.auth.GoogleAuthProvider.credential
+          (.-id_token (.getAuthResponse google-user))))
+      (fn [error]
+        (js/alert error)))))
+
 (defn on-auth []
   (.onAuthStateChanged
     (js/firebase.auth)
-    (fn auth-state-changed [user-obj]
-      ;; TODO: better way of cljsizing user-obj?
-      (let [uid (.-uid user-obj)
-            display-name (.-displayName user-obj)
-            photo-url (.-photoURL user-obj)]
+    (fn auth-state-changed [firebase-user]
+      (let [uid (.-uid firebase-user)
+            display-name (.-displayName firebase-user)
+            photo-url (.-photoURL firebase-user)
+            provider-data (.-providerData firebase-user)]
         (if uid
           (do
             (save ["users" uid "settings"]
@@ -47,11 +65,12 @@
                        :display-name display-name})
             (reset! user {:photoURL photo-url
                           :displayName display-name
-                          :uid uid}))
+                          :uid uid
+                          :providerData provider-data}))
           (when @user
             (reset! user nil)))))
     (fn auth-error [error]
-      (js/console.log error))))
+      (js/alert error))))
 
 (defn init []
   (js/firebase.initializeApp

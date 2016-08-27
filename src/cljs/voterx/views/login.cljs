@@ -18,7 +18,7 @@
         :style {:background-image (str "url(" photoURL ")")
                 :background-size "cover"
                 :background-repeat "no-repeat"}}]]
-     [:button.mdl-button.mdl-js-button.mdl-button--raised.mdl-button--colored
+     [:button.mdl-button.mdl-button--raised.mdl-button--colored
       {:on-click
        (fn login-click [e]
          (firebase/sign-in))}

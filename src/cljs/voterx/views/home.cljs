@@ -182,30 +182,25 @@
     [true gallery/all-gallery]]])
 
 (defn navbar [handler]
-  [:header.mdl-layout__header
-   [:div.mdl-layout__header-row
-    [:span.mdl-layout-title
-     [:img {:src "brand.jpg"
-            :style {:height "50px"
-                    :margin-right "20px"
-                    :border-radius "5px"}}]
-     "Voter"
-     [:span {:style {:font-family "cursive"}} "X"]]
-    [:div.mdl-layout-spacer]
-    [:nav.mdl-navigation
-     (doall
-       (for [[p h] links
-             :let [title (string/capitalize
-                           (if (sequential? p)
-                             (first p)
-                             p))]]
-         [:a.mdl-navigation__link
-          {:key title
-           :href (str "#" (bidi/path-for routes h :id "new" :uid "none"))
-           :style (when (= h handler)
-                    {:box-shadow "inset 0 -10px 10px -10px #FF0000"})}
-          title]))]
-    [login/login-view]]])
+  (let [anchors
+        (doall
+          (for [[p h] links
+                :let [title (string/capitalize
+                              (if (sequential? p)
+                                (first p)
+                                p))]]
+            [:a.mdl-navigation__link
+             {:key title
+              :href (str "#" (bidi/path-for routes h :id "new" :uid "none"))
+              :style (when (= h handler)
+                       {:box-shadow "inset 0 -10px 10px -10px #FF0000"})}
+             title]))]
+    [:header.mdl-layout__header
+     [:div.mdl-layout__header-row
+      {:style {:padding-left "10px"}}
+      [:div.mdl-layout-spacer]
+      [:nav.mdl-navigation.mdl-layout--large-screen-only anchors]
+      [login/login-view]]]))
 
 (defn home [app-state]
   (let [{:keys [handler route-params]} (bidi/match-route routes (:route @app-state))]

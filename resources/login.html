@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>VoterX Login</title>
 
-    <script src="https://www.gstatic.com/firebasejs/3.1.0/firebase.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/3.3.0/firebase.js"></script>
     <script>
       // Initialize Firebase
       var config = {
@@ -20,7 +20,7 @@
     <script type="text/javascript">
       // FirebaseUI config.
       var uiConfig = {
-        'signInSuccessUrl': '<url-to-redirect-to-on-success>',
+        'signInSuccessUrl': 'https://voterx-e88a1.firebaseapp.com/__/auth/handler',
         'signInOptions': [
           // Leave the lines as is for the providers you want to offer your users.
           firebase.auth.GoogleAuthProvider.PROVIDER_ID,
@@ -30,7 +30,7 @@
           firebase.auth.EmailAuthProvider.PROVIDER_ID
         ],
         // Terms of service url.
-        'tosUrl': '<your-tos-url>',
+        'tosUrl': '',
       };
 
       // Initialize the FirebaseUI Widget using Firebase.
