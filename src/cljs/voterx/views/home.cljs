@@ -4,14 +4,10 @@
     [voterx.firebase :as firebase]
     [voterx.views.login :as login]
     [voterx.views.d3 :as d3]
-    [voterx.views.draw :as draw]
-    [voterx.views.gallery :as gallery]
     [voterx.views.text-entry :as text-entry]
     [clojure.string :as string]
     [reagent.core :as reagent]
-    [bidi.bidi :as bidi]
-    [goog.crypt :as crypt]
-    [cljs.tools.reader.edn :as edn])
+    [goog.crypt :as crypt])
   (:import
     [goog.crypt Md5]))
 
@@ -70,27 +66,6 @@
                 (db/retract conn (gid2dbid (:id edge)))
                 (firebase/save ["users" uid "db"] (pr-str @conn))))))}])))
 
-(defn draw-view [{:keys [id]}]
-  (if-let [uid (:uid @firebase/user)]
-    (let [svg (reagent/atom [])
-          r (if (= id "new")
-              (doto (firebase/push ["users" uid "drawings"])
-                (->> (.-key) (str "#/draw/") (set! js/window.location.hash)))
-              (doto (firebase/db-ref ["users" uid "drawings" id])
-                (.once "value" (fn [snapshot]
-                                 ;; TODO: pass title etc too?? as state?
-                                 (swap! svg #(into (or (some-> (.val snapshot) (.-svg) (edn/read-string)) []) %))))))]
-      [draw/draw
-       {:dims [400 400]
-        :svg svg
-        :save
-        (fn [{:keys [svg title notes]}]
-          (when title
-            (.set r #js {:svg (pr-str svg)
-                         :created firebase/timestamp
-                         :notes notes})))}])
-    [:h2 "Must be logged in to draw"]))
-
 (defn md5-hash [s]
   (let [md5 (Md5.)]
     (.update md5 (string/trim s))
@@ -131,13 +106,13 @@
               (when
                 [:strong "(my data)"])]]))])]))
 
-(defn graph-edit [params]
+(defn graph-edit []
   (let [conns (reagent/atom {})
         add-conn (fn add-conn [path x]
                    (db/add-conn conns (second path) x))
         clear-conn (fn clear-conn [path]
                      (swap! conns dissoc (second path)))]
-    (fn [params]
+    (fn []
       [firebase/with-refs-only add-conn clear-conn
        (fn home-component [on off]
          [:section
@@ -166,46 +141,11 @@
                       (firebase/save ["users" uid "db"] nil))}
                    "Delete all my data"]]]]))]])])))
 
-(defn about [params]
-  [:div "Todo: write an about"])
-
-(def links
-  {"gallery" gallery/all-gallery
-   ["view" "/" :uid "/" :id] draw/view-drawing
-   ["draw" "/" :id] draw-view
-   "graph" graph-edit
-   "about" about})
-
-(def routes
-  [""
-   [["/" links]
-    [true gallery/all-gallery]]])
-
-(defn navbar [handler]
-  (let [anchors
-        (doall
-          (for [[p h] links
-                :let [title (string/capitalize
-                              (if (sequential? p)
-                                (first p)
-                                p))]]
-            [:a.mdl-navigation__link
-             {:key title
-              :href (str "#" (bidi/path-for routes h :id "new" :uid "none"))
-              :style (when (= h handler)
-                       {:box-shadow "inset 0 -10px 10px -10px #FF0000"})}
-             title]))]
-    [:header.mdl-layout__header
-     [:div.mdl-layout__header-row
-      {:style {:padding-left "10px"}}
-      [:div.mdl-layout-spacer]
-      [:nav.mdl-navigation.mdl-layout--large-screen-only anchors]
-      [login/login-view]]]))
-
-(defn home [app-state]
-  (let [{:keys [handler route-params]} (bidi/match-route routes (:route @app-state))]
-    [:div.mdl-layout.mdl-layout--fixed-header
-     [navbar handler]
-     [:main.mdl-layout__content
-      [:section
-       [handler route-params]]]]))
+(defn home []
+  [:div.mdl-layout.mdl-layout--fixed-header
+   [:header.mdl-layout__header
+    [:div.mdl-layout__header-row
+     [login/login-view]]]
+   [:main
+    [:section
+     [graph-edit]]]])

@@ -18,7 +18,8 @@
         :style {:background-image (str "url(" photoURL ")")
                 :background-size "cover"
                 :background-repeat "no-repeat"}}]]
-     [:button.mdl-button.mdl-button--raised.mdl-button--colored
+     ;; The firebase login doesn't work on mobile devices :(
+     #_[:button.mdl-button.mdl-button--raised.mdl-button--colored
       {:on-click
        (fn login-click [e]
          (firebase/sign-in))}

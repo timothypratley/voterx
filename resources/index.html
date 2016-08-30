@@ -13,16 +13,16 @@
     <meta name="google-signin-scope" content="profile email">
   </head>
   <body>
-    <span>
+  <div>
       <img src="brand.jpg"
            style="height:50px; margin-right:20px; border-radius:5px;">
       Voter
       <span style="font-family:cursive;">X</span>
-    </span>
-    <script> function onSignIn(googleUser) { voterx.firebase.onSignIn(googleUser); } </script>
-    <div class="g-signin2" data-onsuccess="onSignIn" style="float:right"></div>
+      <div class="g-signin2" data-onsuccess="onSignIn" style="float:right"></div>
+    </div>
     <div id="container">Loading...</div>
     <script type="text/javascript" src="js/app.js"></script>
+    <script> function onSignIn(googleUser) { voterx.firebase.onSignIn(googleUser); } </script>
     <script src="https://apis.google.com/js/platform.js" async defer></script>
   </body>
 </html>
