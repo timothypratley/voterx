@@ -1,3 +1,5 @@
-{:require  [voterx.main]
+{:require [voterx.main]
  :init-fns [voterx.main/init]
- :compiler-options {:asset-path "js/app.out"}}
+ :compiler-options {:asset-path "js/app.out"
+                    :language-in  :ecmascript5
+                    :language-out :ecmascript5}}

@@ -1,15 +1,13 @@
 (ns voterx.firebase
   (:require
     [cljsjs.firebase]
-    [cljs.pprint :refer [pprint]]
     [cljs.core.async :refer [chan put! <!]]
-    [clojure.string :as string]
-    [voterx.db :as db]
-    [reagent.core :as reagent]
-    [reagent.ratom :as ratom]
+    [cljs.pprint :refer [pprint]]
     [cljs.test]
+    [clojure.string :as string]
     [devcards.core]
-    [goog.dom.forms :as forms])
+    [goog.dom.forms :as forms]
+    [reagent.core :as reagent])
   (:require-macros
     [devcards.core :refer [defcard-rg]]))
 

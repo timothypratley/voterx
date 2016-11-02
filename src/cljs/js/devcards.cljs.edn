@@ -1,4 +1,6 @@
 {:require [voterx.devcards]
  :init-fns [voterx.devcards/init]
  :compiler-options {:asset-path "js/devcards.out"
-                    :devcards true}}
+                    :devcards true
+                    :language-in  :ecmascript5
+                    :language-out :ecmascript5}}
